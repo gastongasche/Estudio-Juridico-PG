@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Fisco PBA — Pavetti &amp; Grams</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles/normalize.css">
+  <link rel="stylesheet" href="assets/styles/variables.css">
+  <link rel="stylesheet" href="assets/styles/components.css">
+  <link rel="stylesheet" href="assets/styles/responsive.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1419;
+      --surf: #1a1f26;
+      --s2: #252d37;
+      --hov: #0d0d0d;
+      --t1: #f5f7fa;
+      --t2: #b4c0d4;
+      --t3: #8b96a8;
+      --ln: rgba(255,255,255,.09);
+      --ln2: rgba(255,255,255,.16);
+      --acc: #4f9fff;
+      --afg: #111;
+      --warn-bg: #1a1000;
+      --warn-bd: #78350f;
+      --warn-tx: #fcd34d;
+      --err-bg: #1a0000;
+      --err-bd: #7f1d1d;
+      --err-tx: #fca5a5;
+      --ok-bg: #001a08;
+      --ok-bd: #166534;
+      --ok-tx: #86efac;
+      --info-tx: #93c5fd;
+      --info-bg: rgba(37,99,235,.12);
+      --r: 4px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --text-xs: clamp(11px, 1vw, 12px);
+      --text-sm: clamp(12px, 1.1vw, 13.5px);
+      --text-base: clamp(13.5px, 1.2vw, 16px);
+      --text-lg: clamp(15px, 1.3vw, 18px);
+      --text-xl: clamp(17px, 1.5vw, 20px);
+      --text-2xl: clamp(19px, 1.8vw, 24px);
+      --text-3xl: clamp(24px, 2.5vw, 32px);
+      --ease-smooth: cubic-bezier(.22, 1, .36, 1);
+      --ease-sharp: cubic-bezier(.4, 0, .2, 1);
+    }
+
+    body {
+      font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -.012em;
+      font-size: var(--text-base);
+      line-height: 1.6;
+      background: var(--bg);
+      color: var(--t1);
+      min-height: 100vh;
+      padding: clamp(var(--space-5), 5vw, var(--space-8)) var(--space-5) clamp(var(--space-8), 5vw, 72px);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surf);
+      border-bottom: 1px solid var(--ln);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 14px; }
+    .header-brand .logo {
+      width: 32px; height: 32px;
+      background: var(--acc);
+      border-radius: var(--r);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: var(--afg);
+      letter-spacing: -.02em;
+    }
+    .header-brand h1 { font-size: 14px; font-weight: 500; color: var(--t1); }
+    .header-brand span { font-size: 11px; color: var(--t3); display: block; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .header-back {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12.5px; color: var(--t3); text-decoration: none;
+      padding: 4px 8px; border-radius: var(--r);
+      transition: color .15s, background .15s;
+    }
+    .header-back:hover { color: var(--t1); background: rgba(255,255,255,.04); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: var(--r);
+      border: 1px solid rgba(255,255,255,.18);
+      font-family: inherit; font-size: 12.5px; font-weight: 400;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+      background: none; color: var(--t1); letter-spacing: .01em;
+    }
+    .btn:hover { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.03); }
+    .btn-primary   { background: var(--acc); color: var(--afg); border-color: var(--acc); font-weight: 500; }
+    .btn-primary:hover { background: #d4d4d0; border-color: #d4d4d0; }
+    .btn-outline   { background: transparent; color: var(--t2); border-color: var(--ln2); }
+    .btn-outline:hover { color: var(--t1); border-color: rgba(255,255,255,.38); }
+    .btn-ghost     { background: none; color: var(--t2); border-color: var(--ln); }
+    .btn-ghost:hover { color: var(--t1); border-color: var(--ln2); background: rgba(255,255,255,.03); }
+    .btn-danger    { background: none; color: var(--err-tx); border-color: rgba(220,38,38,.3); }
+    .btn-danger:hover { background: var(--err-bg); }
+    .btn-sm { padding: 3px 9px; font-size: 12px; }
+    .btn-icon { padding: 5px; gap: 0; }
+    svg.icon { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* ── MAIN LAYOUT ── */
+    main { max-width: 1380px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surf);
+      border: 1px solid var(--ln);
+      border-radius: var(--r);
+      padding: 18px 20px;
+      position: relative; overflow: hidden;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 3px; height: 100%;
+    }
+    .stat-card.c-total::before    { background: var(--acc); }
+    .stat-card.c-monto::before    { background: var(--ok-tx); }
+    .stat-card.c-urgente::before  { background: var(--err-tx); }
+    .stat-card.c-atencion::before { background: var(--warn-tx); }
+    .stat-card.c-singest::before  { background: var(--t3); }
+    .stat-card.c-arreglado::before{ background: var(--info-tx); }
+    .stat-label { font-size: 10px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .07em; }
+    .stat-value { font-size: 28px; font-weight: 600; margin-top: 4px; line-height: 1; color: var(--t1); }
+    .stat-value.sm { font-size: 18px; }
+    .stat-sub { font-size: 11px; color: var(--t3); margin-top: 3px; }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .toolbar-left  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .toolbar-right { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--t3); width: 13px; height: 13px; }
+    input[type="search"], input[type="text"], input[type="date"], input[type="number"], select, textarea {
+      font-family: inherit; font-size: 13px;
+      border: none; border-bottom: 1px solid var(--ln);
+      border-radius: 0; padding: 6px 0;
+      background: transparent; color: var(--t1);
+      outline: none; transition: border-color .15s;
+      appearance: none;
+    }
+    input[type="search"]:focus, input[type="text"]:focus,
+    input[type="date"]:focus, input[type="number"]:focus,
+    select:focus, textarea:focus { border-color: var(--t1); }
+    input:valid, textarea:valid, select:valid { border-color: var(--ok-bd); }
+    input:invalid, textarea:invalid, select:invalid { border-color: var(--err-bd); }
+    input::placeholder, textarea::placeholder { color: var(--t3); }
+    .search-wrap input { padding-left: 26px; width: 240px; }
+
+    select.filter-select {
+      padding: 5px 10px; cursor: pointer;
+      border: 1px solid var(--ln); border-radius: var(--r);
+      background: var(--surf); color: var(--t2); font-size: 12.5px;
+    }
+    select.filter-select:focus { border-color: var(--ln2); color: var(--t1); }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--surf);
+      border-radius: var(--r);
+      border: 1px solid var(--ln);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--s2); border-bottom: 1px solid var(--ln2); }
+    thead th {
+      color: var(--t3); font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .07em;
+      padding: 11px 14px; text-align: left; white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--t2); }
+    thead th .sort-icon { margin-left: 4px; opacity: .4; font-size: 9px; }
+    thead th.sorted { color: var(--t2); }
+    thead th.sorted .sort-icon { opacity: 1; }
+    tbody tr { border-bottom: 1px solid var(--ln); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--s2); }
+    tbody td { padding: 10px 14px; font-size: 12.5px; vertical-align: middle; color: var(--t1); }
+    .td-exp { font-weight: 500; color: var(--acc); font-size: 12px; white-space: nowrap; }
+    .td-dem { max-width: 200px; }
+    .td-dem span { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .td-obs { max-width: 200px; }
+    .td-obs span { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--t2); font-size: 12px; }
+    .td-actions { display: flex; gap: 4px; }
+    .td-monto { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ok-tx); white-space: nowrap; }
+    .td-monto.vacio { color: var(--t3); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; white-space: nowrap;
+    }
+    .badge-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Urgencia por días sin gestionar */
+    .urg-singest  { background: rgba(255,255,255,.05); color: var(--t3); }
+    .urg-singest .badge-dot  { background: var(--t3); }
+    .urg-urgente  { background: var(--err-bg);  color: var(--err-tx); }
+    .urg-urgente .badge-dot  { background: var(--err-tx); }
+    .urg-atencion { background: var(--warn-bg); color: var(--warn-tx); }
+    .urg-atencion .badge-dot { background: var(--warn-tx); }
+    .urg-ok       { background: var(--ok-bg);   color: var(--ok-tx); }
+    .urg-ok .badge-dot       { background: var(--ok-tx); }
+    .urg-info     { background: var(--info-bg); color: var(--info-tx); }
+    .urg-info .badge-dot     { background: var(--info-tx); }
+
+    /* Fuero */
+    .fuero-badge { padding: 2px 7px; border-radius: var(--r); font-size: 11px; font-weight: 500;
+      background: rgba(255,255,255,.05); color: var(--t3); }
+    .fuero-federal { background: rgba(124,58,237,.15); color: #c4b5fd; }
+
+    /* Juzgado pill */
+    .juz-pill {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(255,255,255,.07); border: 1px solid var(--ln);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11.5px; font-weight: 600; color: var(--t2);
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--t3); }
+    .empty-state svg { width: 44px; height: 44px; margin-bottom: 12px; opacity: .25; }
+    .empty-state p { font-size: 14px; color: var(--t2); }
+    .empty-state small { font-size: 12px; color: var(--t3); }
+
+    /* ── PAGINATION ── */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-top: 1px solid var(--ln);
+      font-size: 12px; color: var(--t3);
+    }
+    .page-btns { display: flex; gap: 3px; }
+    .page-btn {
+      width: 28px; height: 28px; border-radius: var(--r);
+      border: 1px solid var(--ln);
+      background: none; cursor: pointer; font-family: inherit;
+      font-size: 12px; display: flex; align-items: center; justify-content: center;
+      color: var(--t2); transition: all .12s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--ln2); color: var(--t1); background: var(--s2); }
+    .page-btn.active { background: var(--acc); border-color: var(--acc); color: var(--afg); }
+    .page-btn:disabled { opacity: .3; cursor: default; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.7); z-index: 1000;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surf); border-radius: 10px;
+      border: 1px solid var(--ln2);
+      box-shadow: 0 24px 64px rgba(0,0,0,.6);
+      width: 100%; max-width: 560px;
+      max-height: 90vh; overflow-y: auto;
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-12px) scale(.98); }
+      to   { opacity: 1; transform: none; }
+    }
+    .modal-header {
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid var(--ln);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h2 { font-size: 14px; font-weight: 600; color: var(--t1); }
+    .modal-close {
+      background: none; border: none; cursor: pointer; color: var(--t3);
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      border-radius: var(--r); transition: color .12s;
+    }
+    .modal-close:hover { color: var(--t1); }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 14px 24px 20px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--ln); }
+
+    .form-grid { display: grid; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 10px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .06em; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; }
+    .form-group select { background: var(--surf); border: 1px solid var(--ln); border-radius: var(--r); padding: 6px 8px; color: var(--t1); }
+    .form-group select:focus { border-color: var(--ln2); }
+    .form-group textarea { resize: vertical; min-height: 68px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+    /* Confirm modal */
+    .confirm-modal { max-width: 380px; }
+    .confirm-modal .modal-body p { color: var(--t2); font-size: 13.5px; }
+    .confirm-modal .modal-body strong { color: var(--t1); }
+
+    /* ── TOAST ── */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px;
+      display: flex; flex-direction: column; gap: 8px; z-index: 2000;
+    }
+    .toast {
+      background: var(--s2); color: var(--t1);
+      border: 1px solid var(--ln2);
+      padding: 10px 16px; border-radius: var(--r);
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5);
+      animation: toastIn .22s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.success { border-color: rgba(22,163,74,.4); color: var(--ok-tx); }
+    .toast.error   { border-color: rgba(220,38,38,.4); color: var(--err-tx); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── IMPORT DROPZONE ── */
+    .dropzone {
+      border: 1.5px dashed var(--ln2); border-radius: var(--r);
+      padding: 28px; text-align: center; cursor: pointer;
+      transition: all .18s; color: var(--t3);
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--acc); background: rgba(239,239,236,.04); color: var(--t2);
+    }
+    .dropzone svg { width: 32px; height: 32px; margin-bottom: 8px; opacity: .4; }
+    .dropzone p { font-size: 13px; font-weight: 500; color: var(--t2); }
+    .dropzone small { font-size: 11.5px; color: var(--t3); }
+    #file-import { display: none; }
+
+    /* ── DETAIL GRID ── */
+    .detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .detail-field-label { font-size: 10px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+    .detail-field-val { font-size: 13.5px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 800px) {
+      header { padding: 0 16px; }
+      main { padding: 16px 12px 48px; }
+      .search-wrap input { width: 160px; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      thead th:nth-child(4), tbody td:nth-child(4),
+      thead th:nth-child(6), tbody td:nth-child(6) { display: none; }
+    }
+
+    /* Focus visible for accessibility */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--acc);
+      outline-offset: 2px;
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Responsive breakpoints */
+    @media (min-width: 640px) {
+      body { max-width: 640px; margin: 0 auto; }
+    }
+
+    @media (min-width: 1024px) {
+      body { max-width: 800px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <a href="Inicio.html" class="header-back">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+    </a>
+    <div class="logo">PG</div>
+    <div>
+      <h1>Fisco de la Provincia de Buenos Aires</h1>
+      <span>Pavetti &amp; Grams — Seguimiento de causas</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="openImportModal()">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      Importar Excel
+    </button>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      Nueva Causa
+    </button>
+    <button class="btn btn-outline theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- STATS -->
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="search" id="search-input" placeholder="Buscar demandado, expediente…" oninput="applyFilters()">
+      </div>
+      <select class="filter-select" id="filter-juz" onchange="applyFilters()">
+        <option value="">Todos los juzgados</option>
+        <option value="1">Juzgado 1</option>
+        <option value="2">Juzgado 2</option>
+        <option value="3">Juzgado 3</option>
+        <option value="4">Juzgado 4</option>
+        <option value="5">Juzgado 5</option>
+        <option value="6">Juzgado 6</option>
+        <option value="federal">Federal</option>
+      </select>
+      <select class="filter-select" id="filter-urg" onchange="applyFilters()">
+        <option value="">Toda urgencia</option>
+        <option value="urgente">Urgente (+365 días)</option>
+        <option value="atencion">Atención (181–365 días)</option>
+        <option value="ok">Al día (≤180 días)</option>
+        <option value="singest">Sin gestionar</option>
+      </select>
+      <select class="filter-select" id="filter-obs" onchange="applyFilters()">
+        <option value="">Todos los estados</option>
+        <option value="ARCHIVADO">Archivado</option>
+        <option value="MANDAMIENTO">Mandamiento</option>
+        <option value="INHIBICION">Inhibición</option>
+        <option value="ARREGLADO">Arreglado</option>
+        <option value="SENTENCIA">Sentencia</option>
+        <option value="EMBARGOS">Embargos</option>
+        <option value="DESISTIR">Desistir</option>
+        <option value="LIQUIDACION">Liquidación</option>
+      </select>
+    </div>
+    <div class="toolbar-right">
+      <span id="count-label" style="font-size:12.5px;color:var(--t3)"></span>
+      <button class="btn btn-ghost" onclick="exportToExcel()">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table id="causas-table">
+      <thead>
+        <tr>
+          <th onclick="sortBy('juzgado')" id="th-juzgado">Juz <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('expediente')" id="th-expediente">Expediente <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('demandado')" id="th-demandado">Demandado <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('fuero')" id="th-fuero">Fuero <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('monto')" id="th-monto">Monto <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('ultimaGestion')" id="th-ultimaGestion">Últ. Gestión <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('diasSinGestionar')" id="th-diasSinGestionar" class="sorted">Días S/G <span class="sort-icon">▼</span></th>
+          <th>Observaciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="causas-tbody"></tbody>
+    </table>
+    <div id="empty-state" class="empty-state" style="display:none">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <p>No hay causas que mostrar</p>
+      <small>Agregá una causa o importá un archivo Excel</small>
+    </div>
+    <div class="pagination" id="pagination-bar"></div>
+  </div>
+</main>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ══ MODAL: AGREGAR / EDITAR ══ -->
+<div class="modal-overlay" id="modal-causa">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-causa-title">Nueva Causa</h2>
+      <button class="modal-close" onclick="closeModal('modal-causa')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-juzgado">Juzgado *</label>
+            <select id="f-juzgado">
+              <option value="1">Juzgado 1</option>
+              <option value="2">Juzgado 2</option>
+              <option value="3">Juzgado 3</option>
+              <option value="4">Juzgado 4</option>
+              <option value="5">Juzgado 5</option>
+              <option value="6">Juzgado 6</option>
+              <option value="federal">Juzgado Federal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f-expediente">N° Expediente *</label>
+            <input type="text" id="f-expediente" placeholder="Ej: 8006/2023">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-demandado">Demandado *</label>
+          <input type="text" id="f-demandado" placeholder="Ej: CAPOBIANCO FELIPE DANIEL">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-fuero">Fuero</label>
+            <select id="f-fuero">
+              <option value="CIVIL Y COMERCIAL">Civil y Comercial</option>
+              <option value="FEDERAL">Federal</option>
+              <option value="LABORAL">Laboral</option>
+              <option value="PENAL">Penal</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f-monto">Monto ($)</label>
+            <input type="text" id="f-monto" placeholder="Ej: 753.275">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-ultimaGestion">Última Gestión</label>
+            <input type="date" id="f-ultimaGestion">
+          </div>
+          <div class="form-group">
+            <label for="f-diasSinGestionar">Días sin Gestionar</label>
+            <input type="number" id="f-diasSinGestionar" placeholder="Ej: 146" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-obs">Observaciones / Estado</label>
+          <textarea id="f-obs" placeholder="Ej: MANDAMIENTO ENVIADO - CONTESTAN DEL PROVINCIA"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-causa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCausa()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFIRMAR ELIMINAR ══ -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <h2>Eliminar causa</h2>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>¿Estás seguro de que querés eliminar la causa <strong id="confirm-label"></strong>?</p>
+      <p style="margin-top:8px">Esta acción no se puede deshacer.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: VER DETALLE ══ -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <h2 id="detail-title"></h2>
+      <button class="modal-close" onclick="closeModal('modal-detail')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-detail')">Cerrar</button>
+      <button class="btn btn-primary" id="detail-edit-btn">Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: IMPORTAR EXCEL ══ -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <h2>Importar desde Excel</h2>
+      <button class="modal-close" onclick="closeModal('modal-import')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-import').click()"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p>Arrastrá un archivo o hacé clic para seleccionar</p>
+        <small>Formatos: .xlsx · .xls · .csv</small>
+      </div>
+      <input type="file" id="file-import" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
+
+      <div id="import-preview" style="display:none; margin-top:18px;">
+        <p style="font-size:13px; font-weight:600; margin-bottom:10px;" id="import-preview-label"></p>
+        <p style="font-size:12px; color:var(--t3); margin-bottom:8px;">
+          Asigná cada campo al encabezado de tu Excel. Podés dejar los que no uses en "—".
+        </p>
+        <div id="col-mapping" style="display:grid; gap:8px; margin-bottom:16px;"></div>
+        <p style="font-size:12px; font-weight:600; color:var(--t3); margin-bottom:6px;">Vista previa (primeras 5 filas):</p>
+        <div style="overflow-x:auto; max-height:160px; border:1px solid var(--ln); border-radius:var(--r);">
+          <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+            <thead id="preview-thead" style="background:var(--s2); position:sticky; top:0;"></thead>
+            <tbody id="preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-do-import" onclick="doImport()" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════
+const STORAGE_KEY = 'pg_fisco_v1';
+const NUNCA = 46134; // valor especial = sin gestionar nunca
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+let causas = loadData();
+let editingId = null;
+let deleteId  = null;
+
+// ═══════════════════════════════════════════
+//  URGENCIA
+// ═══════════════════════════════════════════
+function urgClass(dias) {
+  const d = Number(dias);
+  if (!dias && dias !== 0) return 'urg-singest';
+  if (d >= NUNCA)  return 'urg-singest';
+  if (d > 365)     return 'urg-urgente';
+  if (d > 180)     return 'urg-atencion';
+  if (d >= 0)      return 'urg-ok';
+  return 'urg-singest';
+}
+function urgLabel(dias) {
+  const d = Number(dias);
+  if (!dias && dias !== 0) return 'Sin gestionar';
+  if (d >= NUNCA)  return 'Sin gestionar';
+  if (d > 365)     return `${dias} días`;
+  if (d > 180)     return `${dias} días`;
+  return `${dias} días`;
+}
+function urgKey(dias) {
+  const d = Number(dias);
+  if (!dias && dias !== 0) return 'singest';
+  if (d >= NUNCA)  return 'singest';
+  if (d > 365)     return 'urgente';
+  if (d > 180)     return 'atencion';
+  return 'ok';
+}
+
+// ═══════════════════════════════════════════
+//  SORTING & FILTERING
+// ═══════════════════════════════════════════
+let sortField = 'diasSinGestionar';
+let sortAsc   = false;
+let currentPage = 1;
+const PAGE_SIZE = 20;
+
+function getFiltered() {
+  const q   = (document.getElementById('search-input').value || '').trim().toLowerCase();
+  const fj  = (document.getElementById('filter-juz').value || '').toLowerCase();
+  const fu  = document.getElementById('filter-urg').value;
+  const fo  = (document.getElementById('filter-obs').value || '').toLowerCase();
+
+  return causas.filter(c => {
+    const matchQ = !q ||
+      (c.demandado   || '').toLowerCase().includes(q) ||
+      (c.expediente  || '').toLowerCase().includes(q) ||
+      (c.obs         || '').toLowerCase().includes(q) ||
+      (c.juzgado     || '').toLowerCase().includes(q);
+    const matchJ = !fj || (c.juzgado || '').toLowerCase() === fj;
+    const matchU = !fu || urgKey(c.diasSinGestionar) === fu;
+    const matchO = !fo || (c.obs || '').toLowerCase().includes(fo);
+    return matchQ && matchJ && matchU && matchO;
+  }).sort((a, b) => {
+    let va, vb;
+    if (sortField === 'diasSinGestionar' || sortField === 'monto') {
+      va = Number(a[sortField]) || 0;
+      vb = Number(b[sortField]) || 0;
+      return sortAsc ? va - vb : vb - va;
+    }
+    va = (a[sortField] || '').toString().toLowerCase();
+    vb = (b[sortField] || '').toString().toLowerCase();
+    return sortAsc ? va.localeCompare(vb, 'es') : vb.localeCompare(va, 'es');
+  });
+}
+
+function sortBy(field) {
+  if (sortField === field) { sortAsc = !sortAsc; }
+  else { sortField = field; sortAsc = field === 'diasSinGestionar' ? false : true; }
+  currentPage = 1;
+  render();
+}
+
+function applyFilters() { currentPage = 1; render(); }
+
+// ═══════════════════════════════════════════
+//  FORMAT HELPERS
+// ═══════════════════════════════════════════
+function esc(s) {
+  return (s || '').toString()
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtMonto(v) {
+  const n = Number((v || '').toString().replace(/\./g,'').replace(',','.'));
+  if (!v || isNaN(n)) return '';
+  return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function fmtFecha(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T00:00:00');
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function render() {
+  const filtered = getFiltered();
+  const total    = filtered.length;
+  const pages    = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage > pages) currentPage = pages;
+  const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  document.getElementById('count-label').textContent =
+    total === causas.length
+      ? `${total} causa${total !== 1 ? 's' : ''}`
+      : `${total} de ${causas.length}`;
+
+  // Sort icons
+  ['juzgado','expediente','demandado','fuero','monto','ultimaGestion','diasSinGestionar'].forEach(f => {
+    const th = document.getElementById('th-' + f);
+    if (!th) return;
+    const icon = th.querySelector('.sort-icon');
+    th.classList.toggle('sorted', sortField === f);
+    icon.textContent = sortField === f ? (sortAsc ? '▲' : '▼') : '↕';
+  });
+
+  renderStats();
+
+  const empty = document.getElementById('empty-state');
+  const table = document.getElementById('causas-table');
+  empty.style.display = total === 0 ? 'block' : 'none';
+  table.style.display = total === 0 ? 'none' : 'table';
+
+  const tbody = document.getElementById('causas-tbody');
+  tbody.innerHTML = slice.map(c => {
+    const uc = urgClass(c.diasSinGestionar);
+    const ul = urgLabel(c.diasSinGestionar);
+    const isFed = (c.juzgado || '').toLowerCase() === 'federal';
+    const juzDisplay = isFed ? 'Fed.' : (c.juzgado || '—');
+    const montoRaw = Number((c.monto || '').toString().replace(/\./g,'').replace(',','.'));
+    const montoFmt = c.monto ? fmtMonto(c.monto) : '—';
+    return `
+    <tr>
+      <td><span class="juz-pill" title="${isFed ? 'Federal' : 'Juzgado ' + c.juzgado}">${esc(juzDisplay)}</span></td>
+      <td class="td-exp">${esc(c.expediente || '—')}</td>
+      <td class="td-dem"><span title="${esc(c.demandado)}">${esc(c.demandado || '—')}</span></td>
+      <td><span class="fuero-badge ${isFed ? 'fuero-federal' : ''}">${esc((c.fuero || 'CIVIL Y COMERCIAL').replace('CIVIL Y COMERCIAL','C. y Com.'))}</span></td>
+      <td class="td-monto ${!c.monto ? 'vacio' : ''}">${esc(montoFmt)}</td>
+      <td style="font-size:12px;color:var(--t2);white-space:nowrap;">${fmtFecha(c.ultimaGestion)}</td>
+      <td>
+        <span class="badge ${uc}">
+          <span class="badge-dot"></span>
+          ${esc(ul)}
+        </span>
+      </td>
+      <td class="td-obs"><span title="${esc(c.obs)}">${esc(c.obs || '—')}</span></td>
+      <td>
+        <div class="td-actions">
+          <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalle" onclick="openDetail('${c.id}')">
+            <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </button>
+          <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="openEditModal('${c.id}')">
+            <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" title="Eliminar" onclick="openDeleteModal('${c.id}')">
+            <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  renderPagination(total, pages);
+}
+
+function renderStats() {
+  const total     = causas.length;
+  const singest   = causas.filter(c => urgKey(c.diasSinGestionar) === 'singest').length;
+  const urgentes  = causas.filter(c => urgKey(c.diasSinGestionar) === 'urgente').length;
+  const atencion  = causas.filter(c => urgKey(c.diasSinGestionar) === 'atencion').length;
+  const arregl    = causas.filter(c => (c.obs||'').toUpperCase().includes('ARREGLADO')).length;
+
+  let montoTotal = 0;
+  causas.forEach(c => {
+    const n = Number((c.monto || '').toString().replace(/\./g,'').replace(',','.'));
+    if (!isNaN(n)) montoTotal += n;
+  });
+  const montoFmt = montoTotal > 0
+    ? '$ ' + montoTotal.toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:0})
+    : '—';
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card c-total">
+      <div class="stat-label">Total causas</div>
+      <div class="stat-value">${total}</div>
+    </div>
+    <div class="stat-card c-monto">
+      <div class="stat-label">Monto total</div>
+      <div class="stat-value sm">${montoFmt}</div>
+      <div class="stat-sub">suma de causas con monto</div>
+    </div>
+    <div class="stat-card c-urgente">
+      <div class="stat-label">Urgente &gt;365 días</div>
+      <div class="stat-value">${urgentes}</div>
+    </div>
+    <div class="stat-card c-atencion">
+      <div class="stat-label">Atención 181–365 días</div>
+      <div class="stat-value">${atencion}</div>
+    </div>
+    <div class="stat-card c-singest">
+      <div class="stat-label">Sin gestionar</div>
+      <div class="stat-value">${singest}</div>
+    </div>
+    <div class="stat-card c-arreglado">
+      <div class="stat-label">Arregladas</div>
+      <div class="stat-value">${arregl}</div>
+    </div>
+  `;
+}
+
+function renderPagination(total, pages) {
+  const bar = document.getElementById('pagination-bar');
+  if (pages <= 1) { bar.innerHTML = ''; return; }
+  let btns = '';
+  const start = Math.max(1, currentPage - 2);
+  const end   = Math.min(pages, currentPage + 2);
+  if (start > 1) btns += `<button class="page-btn" onclick="goPage(1)">1</button>${start > 2 ? '<span style="color:var(--t3);padding:0 4px;">…</span>' : ''}`;
+  for (let i = start; i <= end; i++) {
+    btns += `<button class="page-btn${i === currentPage ? ' active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  if (end < pages) btns += `${end < pages - 1 ? '<span style="color:var(--t3);padding:0 4px;">…</span>' : ''}<button class="page-btn" onclick="goPage(${pages})">${pages}</button>`;
+  bar.innerHTML = `
+    <span>Página ${currentPage} de ${pages} · ${total} resultado${total !== 1 ? 's' : ''}</span>
+    <div class="page-btns">
+      <button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>
+      ${btns}
+      <button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>›</button>
+    </div>`;
+}
+
+function goPage(p) { currentPage = p; render(); }
+
+// ═══════════════════════════════════════════
+//  CRUD
+// ═══════════════════════════════════════════
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-causa-title').textContent = 'Nueva Causa';
+  document.getElementById('f-juzgado').value       = '1';
+  document.getElementById('f-expediente').value    = '';
+  document.getElementById('f-demandado').value     = '';
+  document.getElementById('f-fuero').value         = 'CIVIL Y COMERCIAL';
+  document.getElementById('f-monto').value         = '';
+  document.getElementById('f-ultimaGestion').value = '';
+  document.getElementById('f-diasSinGestionar').value = '';
+  document.getElementById('f-obs').value           = '';
+  openModal('modal-causa');
+  document.getElementById('f-demandado').focus();
+}
+
+function openEditModal(id) {
+  const c = causas.find(x => x.id === id);
+  if (!c) return;
+  editingId = id;
+  document.getElementById('modal-causa-title').textContent  = 'Editar Causa';
+  document.getElementById('f-juzgado').value                = c.juzgado     || '1';
+  document.getElementById('f-expediente').value             = c.expediente  || '';
+  document.getElementById('f-demandado').value              = c.demandado   || '';
+  document.getElementById('f-fuero').value                  = c.fuero       || 'CIVIL Y COMERCIAL';
+  document.getElementById('f-monto').value                  = c.monto       || '';
+  document.getElementById('f-ultimaGestion').value          = c.ultimaGestion || '';
+  document.getElementById('f-diasSinGestionar').value       = c.diasSinGestionar !== undefined ? c.diasSinGestionar : '';
+  document.getElementById('f-obs').value                    = c.obs         || '';
+  openModal('modal-causa');
+}
+
+function saveCausa() {
+  const juzgado   = document.getElementById('f-juzgado').value.trim();
+  const expediente= document.getElementById('f-expediente').value.trim();
+  const demandado = document.getElementById('f-demandado').value.trim();
+  if (!demandado) { toast('El campo Demandado es obligatorio', 'error'); return; }
+  const obj = {
+    juzgado, expediente, demandado,
+    fuero:             document.getElementById('f-fuero').value,
+    monto:             document.getElementById('f-monto').value.trim(),
+    ultimaGestion:     document.getElementById('f-ultimaGestion').value,
+    diasSinGestionar:  document.getElementById('f-diasSinGestionar').value !== ''
+                         ? Number(document.getElementById('f-diasSinGestionar').value)
+                         : '',
+    obs:               document.getElementById('f-obs').value.trim(),
+    updatedAt:         new Date().toISOString(),
+  };
+  if (editingId) {
+    const idx = causas.findIndex(x => x.id === editingId);
+    causas[idx] = { ...causas[idx], ...obj };
+    toast('Causa actualizada', 'success');
+  } else {
+    causas.push({ id: uid(), createdAt: new Date().toISOString(), ...obj });
+    toast('Causa agregada', 'success');
+  }
+  saveData(causas);
+  closeModal('modal-causa');
+  render();
+}
+
+function openDeleteModal(id) {
+  const c = causas.find(x => x.id === id);
+  if (!c) return;
+  deleteId = id;
+  document.getElementById('confirm-label').textContent = `"${c.expediente || c.demandado}"`;
+  openModal('modal-confirm');
+}
+
+function confirmDelete() {
+  causas = causas.filter(x => x.id !== deleteId);
+  saveData(causas);
+  closeModal('modal-confirm');
+  toast('Causa eliminada', 'success');
+  render();
+}
+
+function openDetail(id) {
+  const c = causas.find(x => x.id === id);
+  if (!c) return;
+  const uc = urgClass(c.diasSinGestionar);
+  const ul = urgLabel(c.diasSinGestionar);
+  const isFed = (c.juzgado || '').toLowerCase() === 'federal';
+  document.getElementById('detail-title').textContent = c.demandado || 'Sin nombre';
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:grid;gap:16px;">
+      <div class="detail-row">
+        <div>
+          <div class="detail-field-label">Juzgado</div>
+          <div class="detail-field-val">${isFed ? 'Juzgado Federal' : 'Juzgado ' + esc(c.juzgado)}</div>
+        </div>
+        <div>
+          <div class="detail-field-label">Expediente</div>
+          <div class="detail-field-val td-exp">${esc(c.expediente || '—')}</div>
+        </div>
+      </div>
+      <div>
+        <div class="detail-field-label">Demandado</div>
+        <div class="detail-field-val" style="font-size:15px;font-weight:500;">${esc(c.demandado || '—')}</div>
+      </div>
+      <div class="detail-row">
+        <div>
+          <div class="detail-field-label">Fuero</div>
+          <div class="detail-field-val"><span class="fuero-badge ${isFed?'fuero-federal':''}">${esc(c.fuero || 'CIVIL Y COMERCIAL')}</span></div>
+        </div>
+        <div>
+          <div class="detail-field-label">Monto</div>
+          <div class="detail-field-val td-monto ${!c.monto?'vacio':''}">${c.monto ? fmtMonto(c.monto) : '—'}</div>
+        </div>
+      </div>
+      <div class="detail-row">
+        <div>
+          <div class="detail-field-label">Última Gestión</div>
+          <div class="detail-field-val">${fmtFecha(c.ultimaGestion)}</div>
+        </div>
+        <div>
+          <div class="detail-field-label">Días sin Gestionar</div>
+          <div class="detail-field-val">
+            <span class="badge ${uc}">
+              <span class="badge-dot"></span>${esc(ul)}
+            </span>
+          </div>
+        </div>
+      </div>
+      ${c.obs ? `<div>
+        <div class="detail-field-label">Observaciones</div>
+        <div class="detail-field-val" style="color:var(--t2);white-space:pre-wrap;font-size:13px;">${esc(c.obs)}</div>
+      </div>` : ''}
+      <div style="font-size:11px;color:var(--t3);border-top:1px solid var(--ln);padding-top:10px;">
+        Creada: ${c.createdAt ? new Date(c.createdAt).toLocaleString('es-AR') : '—'}
+      </div>
+    </div>`;
+  document.getElementById('detail-edit-btn').onclick = () => {
+    closeModal('modal-detail'); openEditModal(id);
+  };
+  openModal('modal-detail');
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT EXCEL
+// ═══════════════════════════════════════════
+function exportToExcel() {
+  if (!causas.length) { toast('No hay causas para exportar', 'error'); return; }
+  const rows = causas.map(c => ({
+    'Juzgado':            c.juzgado           || '',
+    'Expediente':         c.expediente         || '',
+    'Demandado':          c.demandado          || '',
+    'Fuero':              c.fuero              || '',
+    'Monto':              c.monto              || '',
+    'Última Gestión':     c.ultimaGestion      || '',
+    'Días sin Gestionar': c.diasSinGestionar !== '' ? c.diasSinGestionar : '',
+    'Observaciones':      c.obs               || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [10,16,36,20,16,14,16,40].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Fisco');
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Causas_Fisco_PG_${fecha}.xlsx`);
+  toast('Archivo Excel exportado', 'success');
+}
+
+// ═══════════════════════════════════════════
+//  IMPORT EXCEL
+// ═══════════════════════════════════════════
+let rawRows = [], rawHeaders = [];
+
+const FIELDS = [
+  { key: 'juzgado',          label: 'Juzgado',            required: false },
+  { key: 'expediente',       label: 'Expediente / EXP',   required: false },
+  { key: 'demandado',        label: 'Demandado',           required: true  },
+  { key: 'fuero',            label: 'Fuero',               required: false },
+  { key: 'monto',            label: 'Monto',               required: false },
+  { key: 'ultimaGestion',    label: 'Última Gestión',      required: false },
+  { key: 'diasSinGestionar', label: 'Días sin Gestionar',  required: false },
+  { key: 'obs',              label: 'Observaciones',       required: false },
+];
+
+const COL_HINTS = {
+  'juzgado':          ['juz','juzgado','tribunal','court'],
+  'expediente':       ['exp','expediente','numero','nro','causa','number'],
+  'demandado':        ['demandado','demanda','defendant','nombre','razon'],
+  'fuero':            ['fuero','fuero civil','fuero penal'],
+  'monto':            ['monto','importe','suma','amount'],
+  'ultimaGestion':    ['ultima gestion','ultima','gestion','fecha','date'],
+  'diasSinGestionar': ['dias','sin gestionar','dias sin','days'],
+  'obs':              ['obs','observaciones','nota','estado','columna','comment'],
+};
+
+function normalizeStr(s) {
+  return s.toString().toLowerCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+}
+function autoDetect(header) {
+  const hn = normalizeStr(header);
+  for (const [field, hints] of Object.entries(COL_HINTS)) {
+    if (hints.some(h => hn.includes(normalizeStr(h)))) return field;
+  }
+  return '';
+}
+
+function openImportModal() {
+  rawRows = []; rawHeaders = [];
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('btn-do-import').disabled = true;
+  document.getElementById('file-import').value = '';
+  openModal('modal-import');
+}
+
+function handleFileSelect(e) { processFile(e.target.files[0]); }
+function handleDragOver(e)   { e.preventDefault(); document.getElementById('dropzone').classList.add('drag-over'); }
+function handleDragLeave()   { document.getElementById('dropzone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag-over');
+  processFile(e.dataTransfer.files[0]);
+}
+
+function processFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rawRows.length) { toast('El archivo está vacío', 'error'); return; }
+      rawHeaders = Object.keys(rawRows[0]);
+
+      const usedFields = new Set();
+      const mappingEl  = document.getElementById('col-mapping');
+      mappingEl.innerHTML = FIELDS.map(f => {
+        const detected = rawHeaders.find(h => autoDetect(h) === f.key && !usedFields.has(h)) || '';
+        if (detected) usedFields.add(detected);
+        const opts = rawHeaders.map(h =>
+          `<option value="${esc(h)}"${h === detected ? ' selected' : ''}>${esc(h)}</option>`
+        ).join('');
+        return `
+          <div style="display:grid;grid-template-columns:180px 1fr;align-items:center;gap:8px;">
+            <label style="font-size:12px;font-weight:500;">
+              ${f.label}${f.required ? ' <span style="color:var(--err-tx)">*</span>' : ''}
+            </label>
+            <select id="map-${f.key}" onchange="updatePreview()"
+              style="font-size:12px;padding:5px 9px;border:1px solid var(--ln);border-radius:var(--r);background:var(--surf);color:var(--t1);font-family:inherit;">
+              <option value="">— no asignar —</option>
+              ${opts}
+            </select>
+          </div>`;
+      }).join('');
+
+      document.getElementById('import-preview-label').textContent =
+        `${rawRows.length} fila${rawRows.length !== 1 ? 's' : ''} en "${file.name}"`;
+      updatePreview();
+      document.getElementById('import-preview').style.display  = 'block';
+      document.getElementById('btn-do-import').disabled = false;
+    } catch(err) {
+      console.error(err); toast('Error al leer el archivo', 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function updatePreview() {
+  const mapping = FIELDS.map(f => ({
+    key: f.key, label: f.label,
+    col: document.getElementById('map-' + f.key)?.value || '',
+  }));
+  document.getElementById('preview-thead').innerHTML =
+    '<tr>' + mapping.map(m =>
+      `<th style="padding:7px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);white-space:nowrap;">${esc(m.label)}</th>`
+    ).join('') + '</tr>';
+  document.getElementById('preview-tbody').innerHTML =
+    rawRows.slice(0,5).map(r =>
+      '<tr style="border-top:1px solid var(--ln);">' +
+      mapping.map(m => {
+        const val = m.col ? (r[m.col] || '').toString() : '';
+        return `<td style="padding:5px 10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;">` +
+          (val ? esc(val) : `<span style="color:var(--t3);">—</span>`) + `</td>`;
+      }).join('') + '</tr>'
+    ).join('');
+}
+
+function doImport() {
+  const mapping = {};
+  FIELDS.forEach(f => {
+    const v = document.getElementById('map-' + f.key)?.value;
+    if (v) mapping[f.key] = v;
+  });
+  if (!mapping.demandado && !mapping.expediente) {
+    toast('Asigná al menos Demandado o Expediente', 'error'); return;
+  }
+  const toImport = rawRows.map(r => {
+    const obj = { id: uid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    FIELDS.forEach(f => {
+      if (!mapping[f.key]) return;
+      let val = (r[mapping[f.key]] || '').toString().trim();
+      if (f.key === 'diasSinGestionar') {
+        const n = Number(val.replace(',','.'));
+        obj[f.key] = isNaN(n) ? '' : n;
+      } else {
+        obj[f.key] = val;
+      }
+    });
+    if (!obj.fuero) obj.fuero = 'CIVIL Y COMERCIAL';
+    return obj;
+  }).filter(r => r.demandado || r.expediente);
+
+  if (!toImport.length) { toast('No hay filas válidas para importar', 'error'); return; }
+
+  const existing = new Set(
+    causas.map(c => (c.expediente || '').toLowerCase().trim()).filter(Boolean)
+  );
+  let added = 0, skipped = 0;
+  toImport.forEach(c => {
+    const k = (c.expediente || '').toLowerCase().trim();
+    if (k && existing.has(k)) { skipped++; }
+    else { causas.push(c); if (k) existing.add(k); added++; }
+  });
+  saveData(causas);
+  closeModal('modal-import');
+  render();
+  toast(
+    `${added} causa${added !== 1 ? 's' : ''} importada${added !== 1 ? 's' : ''}` +
+    (skipped ? ` · ${skipped} duplicada${skipped !== 1 ? 's' : ''} omitida${skipped !== 1 ? 's' : ''}` : ''),
+    'success'
+  );
+}
+
+// ═══════════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape')
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+function toast(msg, type = '') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast${type ? ' ' + type : ''}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+function toggleTheme(){
+  const body = document.body;
+  const isLight = body.classList.contains('light-theme');
+  if(isLight){
+    body.classList.remove('light-theme');
+    localStorage.setItem('theme', 'dark');
+  }else{
+    body.classList.add('light-theme');
+    localStorage.setItem('theme', 'light');
+  }
+}
+function initTheme(){
+  const saved = localStorage.getItem('theme');
+  if(saved === 'light'){
+    document.body.classList.add('light-theme');
+  }
+}
+initTheme();
+render();
+</script>
+</body>
+</html>

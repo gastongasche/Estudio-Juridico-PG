@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Causas — Pavetti &amp; Grams</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles/normalize.css">
+  <link rel="stylesheet" href="assets/styles/variables.css">
+  <link rel="stylesheet" href="assets/styles/components.css">
+  <link rel="stylesheet" href="assets/styles/responsive.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1419;
+      --surf: #1a1f26;
+      --s2: #252d37;
+      --hov: #0d0d0d;
+      --t1: #f5f7fa;
+      --t2: #b4c0d4;
+      --t3: #8b96a8;
+      --ln: rgba(255,255,255,.09);
+      --ln2: rgba(255,255,255,.16);
+      --acc: #4f9fff;
+      --afg: #111;
+      --warn-bg: #1a1000;
+      --warn-bd: #78350f;
+      --warn-tx: #fcd34d;
+      --err-bg: #1a0000;
+      --err-bd: #7f1d1d;
+      --err-tx: #fca5a5;
+      --ok-bg: #001a08;
+      --ok-bd: #166534;
+      --ok-tx: #86efac;
+      --r: 4px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --text-xs: clamp(11px, 1vw, 12px);
+      --text-sm: clamp(12px, 1.1vw, 13.5px);
+      --text-base: clamp(13.5px, 1.2vw, 16px);
+      --text-lg: clamp(15px, 1.3vw, 18px);
+      --text-xl: clamp(17px, 1.5vw, 20px);
+      --text-2xl: clamp(19px, 1.8vw, 24px);
+      --text-3xl: clamp(24px, 2.5vw, 32px);
+      --ease-smooth: cubic-bezier(.22, 1, .36, 1);
+      --ease-sharp: cubic-bezier(.4, 0, .2, 1);
+    }
+
+    body {
+      font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -.012em;
+      font-size: var(--text-base);
+      line-height: 1.6;
+      background: var(--bg);
+      color: var(--t1);
+      min-height: 100vh;
+      padding: clamp(var(--space-5), 5vw, var(--space-8)) var(--space-5) clamp(var(--space-8), 5vw, 72px);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surf);
+      border-bottom: 1px solid var(--ln);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-brand { display: flex; align-items: center; gap: 14px; }
+    .header-brand .logo {
+      width: 32px; height: 32px;
+      background: var(--acc);
+      border-radius: var(--r);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: var(--afg);
+      letter-spacing: -.02em;
+    }
+    .header-brand h1 { font-size: 14px; font-weight: 500; color: var(--t1); }
+    .header-brand span { font-size: 11px; color: var(--t3); display: block; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: var(--r);
+      border: 1px solid rgba(255,255,255,.18);
+      font-family: inherit; font-size: 12.5px; font-weight: 400;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+      background: none; color: var(--t1); letter-spacing: .01em;
+    }
+    .btn:hover { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.03); }
+    .btn-primary   { background: var(--acc); color: var(--afg); border-color: var(--acc); font-weight: 500; }
+    .btn-primary:hover { background: #d4d4d0; border-color: #d4d4d0; }
+    .btn-outline   { background: transparent; color: var(--t2); border-color: var(--ln2); }
+    .btn-outline:hover { color: var(--t1); border-color: rgba(255,255,255,.38); }
+    .btn-ghost     { background: none; color: var(--t2); border-color: var(--ln); }
+    .btn-ghost:hover { color: var(--t1); border-color: var(--ln2); background: rgba(255,255,255,.03); }
+    .btn-danger    { background: none; color: var(--err-tx); border-color: rgba(220,38,38,.3); }
+    .btn-danger:hover { background: var(--err-bg); }
+    .btn-sm { padding: 3px 9px; font-size: 12px; }
+    .btn-icon { padding: 5px; gap: 0; }
+    svg.icon { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* ── MAIN LAYOUT ── */
+    main { max-width: 1280px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surf);
+      border: 1px solid var(--ln);
+      border-radius: var(--r);
+      padding: 18px 20px;
+      position: relative; overflow: hidden;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 3px; height: 100%;
+    }
+    .stat-card.total::before          { background: var(--acc); }
+    .stat-card.active::before         { background: var(--ok-tx); }
+    .stat-card.archived::before       { background: var(--t3); }
+    .stat-card.status-en-gestion::before { background: var(--warn-tx); }
+    .stat-label { font-size: 10px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .07em; }
+    .stat-value { font-size: 30px; font-weight: 600; margin-top: 4px; line-height: 1; color: var(--t1); }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .toolbar-left  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .toolbar-right { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--t3); width: 13px; height: 13px; }
+    input[type="search"], input[type="text"], input[type="date"], select, textarea {
+      font-family: inherit; font-size: 13px;
+      border: none; border-bottom: 1px solid var(--ln);
+      border-radius: 0; padding: 6px 0;
+      background: transparent; color: var(--t1);
+      outline: none; transition: border-color .15s;
+      appearance: none;
+    }
+    input[type="search"]:focus, input[type="text"]:focus,
+    input[type="date"]:focus, select:focus, textarea:focus { border-color: var(--t1); }
+    input:valid, textarea:valid, select:valid { border-color: var(--ok-bd); }
+    input:invalid, textarea:invalid, select:invalid { border-color: var(--err-bd); }
+    input::placeholder, textarea::placeholder { color: var(--t3); }
+    .search-wrap input { padding-left: 26px; width: 240px; }
+
+    select.filter-select {
+      padding: 5px 10px; cursor: pointer;
+      border: 1px solid var(--ln); border-radius: var(--r);
+      background: var(--surf); color: var(--t2); font-size: 12.5px;
+    }
+    select.filter-select:focus { border-color: var(--ln2); color: var(--t1); }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--surf);
+      border-radius: var(--r);
+      border: 1px solid var(--ln);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--s2); border-bottom: 1px solid var(--ln2); }
+    thead th {
+      color: var(--t3); font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .07em;
+      padding: 11px 16px; text-align: left; white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--t2); }
+    thead th .sort-icon { margin-left: 4px; opacity: .4; font-size: 9px; }
+    thead th.sorted { color: var(--t2); }
+    thead th.sorted .sort-icon { opacity: 1; }
+    tbody tr { border-bottom: 1px solid var(--ln); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--s2); }
+    tbody td { padding: 11px 16px; font-size: 13px; vertical-align: middle; color: var(--t1); }
+    .td-num { font-weight: 500; color: var(--acc); font-size: 12.5px; }
+    .td-caratula { max-width: 240px; }
+    .td-caratula span { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--t2); }
+    .td-actions { display: flex; gap: 4px; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; border-radius: 99px; font-size: 11.5px; font-weight: 500;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .badge-activa    { background: var(--ok-bg); color: var(--ok-tx); }
+    .badge-activa .badge-dot    { background: var(--ok-tx); }
+    .badge-archivada { background: rgba(255,255,255,.05); color: var(--t3); }
+    .badge-archivada .badge-dot { background: var(--t3); }
+
+    .estado-badge { padding: 2px 8px; border-radius: var(--r); font-size: 11.5px; font-weight: 500; }
+    .estado-inicio       { background: rgba(37,99,235,.15);  color: #93c5fd; }
+    .estado-en-tramite   { background: var(--warn-bg);        color: var(--warn-tx); }
+    .estado-sentencia    { background: rgba(124,58,237,.15);  color: #c4b5fd; }
+    .estado-ejecucion    { background: rgba(190,24,93,.15);   color: #f9a8d4; }
+    .estado-cobrado      { background: var(--ok-bg);          color: var(--ok-tx); }
+    .estado-desistido    { background: var(--err-bg);         color: var(--err-tx); }
+    .estado-otro         { background: rgba(255,255,255,.06); color: var(--t3); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--t3); }
+    .empty-state svg { width: 44px; height: 44px; margin-bottom: 12px; opacity: .25; }
+    .empty-state p { font-size: 14px; color: var(--t2); }
+    .empty-state small { font-size: 12px; color: var(--t3); }
+
+    /* ── PAGINATION ── */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-top: 1px solid var(--ln);
+      font-size: 12px; color: var(--t3);
+    }
+    .page-btns { display: flex; gap: 3px; }
+    .page-btn {
+      width: 28px; height: 28px; border-radius: var(--r);
+      border: 1px solid var(--ln);
+      background: none; cursor: pointer; font-family: inherit;
+      font-size: 12px; display: flex; align-items: center; justify-content: center;
+      color: var(--t2); transition: all .12s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--ln2); color: var(--t1); background: var(--s2); }
+    .page-btn.active { background: var(--acc); border-color: var(--acc); color: var(--afg); }
+    .page-btn:disabled { opacity: .3; cursor: default; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.7); z-index: 1000;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surf); border-radius: 10px;
+      border: 1px solid var(--ln2);
+      box-shadow: 0 24px 64px rgba(0,0,0,.6);
+      width: 100%; max-width: 540px;
+      max-height: 90vh; overflow-y: auto;
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-12px) scale(.98); }
+      to   { opacity: 1; transform: none; }
+    }
+    .modal-header {
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid var(--ln);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h2 { font-size: 14px; font-weight: 600; color: var(--t1); }
+    .modal-close {
+      background: none; border: none; cursor: pointer; color: var(--t3);
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      border-radius: var(--r); transition: color .12s;
+    }
+    .modal-close:hover { color: var(--t1); }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 14px 24px 20px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--ln); }
+
+    .form-grid { display: grid; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 10px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .06em; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; }
+    .form-group select { background: var(--surf); border: 1px solid var(--ln); border-radius: var(--r); padding: 6px 8px; color: var(--t1); }
+    .form-group select:focus { border-color: var(--ln2); }
+    .form-group textarea { resize: vertical; min-height: 68px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* ── CONFIRM MODAL ── */
+    .confirm-modal { max-width: 380px; }
+    .confirm-modal .modal-body p { color: var(--t2); font-size: 13.5px; }
+    .confirm-modal .modal-body strong { color: var(--t1); }
+
+    /* ── TOAST ── */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px;
+      display: flex; flex-direction: column; gap: 8px; z-index: 2000;
+    }
+    .toast {
+      background: var(--s2); color: var(--t1);
+      border: 1px solid var(--ln2);
+      padding: 10px 16px; border-radius: var(--r);
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5);
+      animation: toastIn .22s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.success { border-color: rgba(22,163,74,.4); color: var(--ok-tx); }
+    .toast.error   { border-color: rgba(220,38,38,.4); color: var(--err-tx); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── IMPORT DROPZONE ── */
+    .dropzone {
+      border: 1.5px dashed var(--ln2); border-radius: var(--r);
+      padding: 28px; text-align: center; cursor: pointer;
+      transition: all .18s; color: var(--t3);
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--acc); background: rgba(239,239,236,.04); color: var(--t2);
+    }
+    .dropzone svg { width: 32px; height: 32px; margin-bottom: 8px; opacity: .4; }
+    .dropzone p { font-size: 13px; font-weight: 500; color: var(--t2); }
+    .dropzone small { font-size: 11.5px; color: var(--t3); }
+    #file-import { display: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      header { padding: 0 16px; }
+      main { padding: 16px 12px 48px; }
+      .search-wrap input { width: 160px; }
+      .form-row { grid-template-columns: 1fr; }
+      thead th:nth-child(3), tbody td:nth-child(3) { display: none; }
+    }
+
+    /* Focus visible for accessibility */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--acc);
+      outline-offset: 2px;
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Responsive breakpoints */
+    @media (min-width: 640px) {
+      body { max-width: 640px; margin: 0 auto; }
+    }
+
+    @media (min-width: 1024px) {
+      body { max-width: 800px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <div class="logo">P&amp;G</div>
+    <div>
+      <h1>Dashboard de Causas</h1>
+      <span>Pavetti &amp; Grams — Estudio Jurídico</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="openImportModal()">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      Importar Excel
+    </button>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      Nueva Causa
+    </button>
+    <button class="btn btn-outline theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- STATS -->
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="search" id="search-input" placeholder="Buscar causa, carátula, juzgado…" oninput="applyFilters()">
+      </div>
+      <select class="filter-select" id="filter-condicion" onchange="applyFilters()">
+        <option value="">Todas las causas</option>
+        <option value="activa">Solo activas</option>
+        <option value="archivada">Solo archivadas</option>
+      </select>
+      <select class="filter-select" id="filter-estado" onchange="applyFilters()">
+        <option value="">Todos los estados</option>
+        <option value="Inicio">Inicio</option>
+        <option value="En trámite">En trámite</option>
+        <option value="Sentencia">Sentencia</option>
+        <option value="Ejecución">Ejecución</option>
+        <option value="Cobrado">Cobrado</option>
+        <option value="Desistido">Desistido</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div class="toolbar-right">
+      <span id="count-label" style="font-size:13px;color:var(--muted)"></span>
+      <button class="btn btn-ghost" onclick="exportToExcel()">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Exportar Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table id="causas-table">
+      <thead>
+        <tr>
+          <th onclick="sortBy('numero')" class="sorted" id="th-numero">N° Causa <span class="sort-icon">▲</span></th>
+          <th onclick="sortBy('caratula')" id="th-caratula">Carátula <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('juzgado')" id="th-juzgado">Juzgado <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('estado')" id="th-estado">Estado <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('condicion')" id="th-condicion">Condición <span class="sort-icon">↕</span></th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="causas-tbody"></tbody>
+    </table>
+    <div id="empty-state" class="empty-state" style="display:none">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <p>No hay causas que mostrar</p>
+      <small>Agregá una causa o importá un archivo Excel</small>
+    </div>
+    <div class="pagination" id="pagination-bar"></div>
+  </div>
+</main>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ══ MODAL: AGREGAR / EDITAR ══ -->
+<div class="modal-overlay" id="modal-causa">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-causa-title">Nueva Causa</h2>
+      <button class="modal-close" onclick="closeModal('modal-causa')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-numero">N° de Causa *</label>
+            <input type="text" id="f-numero" placeholder="Ej: 12345/2024">
+          </div>
+          <div class="form-group">
+            <label for="f-juzgado">Juzgado *</label>
+            <input type="text" id="f-juzgado" placeholder="Ej: Juzgado Civil N° 3">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-caratula">Carátula *</label>
+          <input type="text" id="f-caratula" placeholder="Ej: García, Juan c/ López, Pedro s/ cobro">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-estado">Estado</label>
+            <select id="f-estado">
+              <option value="Inicio">Inicio</option>
+              <option value="En trámite">En trámite</option>
+              <option value="Sentencia">Sentencia</option>
+              <option value="Ejecución">Ejecución</option>
+              <option value="Cobrado">Cobrado</option>
+              <option value="Desistido">Desistido</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f-condicion">Condición</label>
+            <select id="f-condicion">
+              <option value="activa">Activa</option>
+              <option value="archivada">Archivada</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-notas">Notas / Observaciones</label>
+          <textarea id="f-notas" placeholder="Información adicional…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-causa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCausa()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFIRMAR ELIMINAR ══ -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <h2>Eliminar causa</h2>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>¿Estás seguro de que querés eliminar la causa <strong id="confirm-label"></strong>?</p>
+      <p style="margin-top:8px">Esta acción no se puede deshacer.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: IMPORTAR EXCEL ══ -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Importar desde Excel</h2>
+      <button class="modal-close" onclick="closeModal('modal-import')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-import').click()"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p>Arrastrá un archivo o hacé clic para seleccionar</p>
+        <small>Formatos: .xlsx · .xls · .csv</small>
+      </div>
+      <input type="file" id="file-import" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
+
+      <div id="import-preview" style="display:none; margin-top:18px;">
+        <p style="font-size:13px; font-weight:600; margin-bottom:10px;" id="import-preview-label"></p>
+
+        <!-- Mapeo de columnas -->
+        <p style="font-size:12px; color:var(--muted); margin-bottom:8px;">
+          Asigná cada campo al encabezado de tu Excel. Las columnas que no uses podés dejarlas en "—".
+        </p>
+        <div id="col-mapping" style="display:grid; gap:8px; margin-bottom:16px;"></div>
+
+        <!-- Preview -->
+        <p style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px;">Vista previa (primeras 6 filas):</p>
+        <div style="overflow-x:auto; max-height:180px; border:1px solid var(--border); border-radius:8px;">
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead id="preview-thead" style="background:var(--primary); color:#fff; position:sticky; top:0;"></thead>
+            <tbody id="preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-do-import" onclick="doImport()" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: VER DETALLE ══ -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="detail-title"></h2>
+      <button class="modal-close" onclick="closeModal('modal-detail')">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-detail')">Cerrar</button>
+      <button class="btn btn-primary" id="detail-edit-btn">Editar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════
+const STORAGE_KEY = 'pg_causas_v1';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let causas = loadData();
+let editingId = null;
+let deleteId  = null;
+let pendingImport = [];
+
+// ═══════════════════════════════════════════
+//  SORTING & FILTERING
+// ═══════════════════════════════════════════
+let sortField = 'numero';
+let sortAsc   = true;
+let currentPage = 1;
+const PAGE_SIZE = 15;
+
+function getFiltered() {
+  const q  = document.getElementById('search-input').value.trim().toLowerCase();
+  const fc = document.getElementById('filter-condicion').value;
+  const fe = document.getElementById('filter-estado').value;
+
+  return causas.filter(c => {
+    const matchQ = !q ||
+      (c.numero   || '').toLowerCase().includes(q) ||
+      (c.caratula || '').toLowerCase().includes(q) ||
+      (c.juzgado  || '').toLowerCase().includes(q) ||
+      (c.notas    || '').toLowerCase().includes(q);
+    const matchC = !fc || c.condicion === fc;
+    const matchE = !fe || c.estado    === fe;
+    return matchQ && matchC && matchE;
+  }).sort((a, b) => {
+    const va = (a[sortField] || '').toString().toLowerCase();
+    const vb = (b[sortField] || '').toString().toLowerCase();
+    return sortAsc ? va.localeCompare(vb, 'es') : vb.localeCompare(va, 'es');
+  });
+}
+
+function sortBy(field) {
+  if (sortField === field) { sortAsc = !sortAsc; }
+  else { sortField = field; sortAsc = true; }
+  currentPage = 1;
+  render();
+}
+
+function applyFilters() {
+  currentPage = 1;
+  render();
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function estadoClass(e) {
+  const map = {
+    'Inicio': 'estado-inicio',
+    'En trámite': 'estado-en-tramite',
+    'Sentencia': 'estado-sentencia',
+    'Ejecución': 'estado-ejecucion',
+    'Cobrado': 'estado-cobrado',
+    'Desistido': 'estado-desistido',
+  };
+  return map[e] || 'estado-otro';
+}
+
+function render() {
+  const filtered = getFiltered();
+  const total    = filtered.length;
+  const pages    = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage > pages) currentPage = pages;
+
+  const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Count label
+  document.getElementById('count-label').textContent =
+    total === causas.length
+      ? `${total} causa${total !== 1 ? 's' : ''}`
+      : `${total} de ${causas.length} causa${causas.length !== 1 ? 's' : ''}`;
+
+  // Sort icons
+  ['numero','caratula','juzgado','estado','condicion'].forEach(f => {
+    const th = document.getElementById('th-' + f);
+    if (!th) return;
+    const icon = th.querySelector('.sort-icon');
+    th.classList.toggle('sorted', sortField === f);
+    icon.textContent = sortField === f ? (sortAsc ? '▲' : '▼') : '↕';
+  });
+
+  // Stats
+  renderStats();
+
+  // Empty state
+  const empty = document.getElementById('empty-state');
+  const table = document.getElementById('causas-table');
+  empty.style.display = total === 0 ? 'block' : 'none';
+  table.style.display = total === 0 ? 'none' : 'table';
+
+  // Rows
+  const tbody = document.getElementById('causas-tbody');
+  tbody.innerHTML = slice.map(c => `
+    <tr>
+      <td class="td-num">${esc(c.numero)}</td>
+      <td class="td-caratula"><span title="${esc(c.caratula)}">${esc(c.caratula)}</span></td>
+      <td>${esc(c.juzgado)}</td>
+      <td><span class="estado-badge ${estadoClass(c.estado)}">${esc(c.estado)}</span></td>
+      <td>
+        <span class="badge badge-${c.condicion}">
+          <span class="badge-dot"></span>
+          ${c.condicion === 'activa' ? 'Activa' : 'Archivada'}
+        </span>
+      </td>
+      <td>
+        <div class="td-actions">
+          <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalle" onclick="openDetail('${c.id}')">
+            <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </button>
+          <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="openEditModal('${c.id}')">
+            <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" title="Eliminar" onclick="openDeleteModal('${c.id}')">
+            <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Pagination
+  renderPagination(total, pages);
+}
+
+function renderStats() {
+  const activas   = causas.filter(c => c.condicion === 'activa').length;
+  const archivadas = causas.filter(c => c.condicion === 'archivada').length;
+  const enTramite = causas.filter(c => c.estado === 'En trámite').length;
+  const cobradas  = causas.filter(c => c.estado === 'Cobrado').length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card total">
+      <div class="stat-label">Total causas</div>
+      <div class="stat-value">${causas.length}</div>
+    </div>
+    <div class="stat-card active">
+      <div class="stat-label">Activas</div>
+      <div class="stat-value">${activas}</div>
+    </div>
+    <div class="stat-card archived">
+      <div class="stat-label">Archivadas</div>
+      <div class="stat-value">${archivadas}</div>
+    </div>
+    <div class="stat-card status-en-gestion">
+      <div class="stat-label">En trámite</div>
+      <div class="stat-value">${enTramite}</div>
+    </div>
+    <div class="stat-card active" style="--green:#16a34a;">
+      <div class="stat-label">Cobradas</div>
+      <div class="stat-value" style="color:var(--primary)">${cobradas}</div>
+    </div>
+  `;
+}
+
+function renderPagination(total, pages) {
+  const bar = document.getElementById('pagination-bar');
+  if (pages <= 1) { bar.innerHTML = ''; return; }
+
+  let btns = '';
+  for (let i = 1; i <= pages; i++) {
+    btns += `<button class="page-btn${i === currentPage ? ' active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  bar.innerHTML = `
+    <span>Página ${currentPage} de ${pages} · ${total} resultados</span>
+    <div class="page-btns">
+      <button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>
+      ${btns}
+      <button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>›</button>
+    </div>
+  `;
+}
+
+function goPage(p) { currentPage = p; render(); }
+
+// ═══════════════════════════════════════════
+//  CRUD
+// ═══════════════════════════════════════════
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function esc(s) {
+  return (s || '').toString()
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-causa-title').textContent = 'Nueva Causa';
+  ['numero','caratula','juzgado','notas'].forEach(f =>
+    document.getElementById('f-' + f).value = '');
+  document.getElementById('f-estado').value    = 'Inicio';
+  document.getElementById('f-condicion').value = 'activa';
+  openModal('modal-causa');
+  document.getElementById('f-numero').focus();
+}
+
+function openEditModal(id) {
+  const c = causas.find(x => x.id === id);
+  if (!c) return;
+  editingId = id;
+  document.getElementById('modal-causa-title').textContent = 'Editar Causa';
+  document.getElementById('f-numero').value    = c.numero   || '';
+  document.getElementById('f-caratula').value  = c.caratula || '';
+  document.getElementById('f-juzgado').value   = c.juzgado  || '';
+  document.getElementById('f-estado').value    = c.estado    || 'Inicio';
+  document.getElementById('f-condicion').value = c.condicion || 'activa';
+  document.getElementById('f-notas').value     = c.notas    || '';
+  openModal('modal-causa');
+}
+
+function saveCausa() {
+  const numero   = document.getElementById('f-numero').value.trim();
+  const caratula = document.getElementById('f-caratula').value.trim();
+  const juzgado  = document.getElementById('f-juzgado').value.trim();
+  if (!numero || !caratula || !juzgado) {
+    toast('Completá los campos obligatorios (*)', 'error'); return;
+  }
+  if (editingId) {
+    const idx = causas.findIndex(x => x.id === editingId);
+    causas[idx] = { ...causas[idx],
+      numero, caratula, juzgado,
+      estado:    document.getElementById('f-estado').value,
+      condicion: document.getElementById('f-condicion').value,
+      notas:     document.getElementById('f-notas').value.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    toast('Causa actualizada', 'success');
+  } else {
+    causas.push({
+      id: uid(), numero, caratula, juzgado,
+      estado:    document.getElementById('f-estado').value,
+      condicion: document.getElementById('f-condicion').value,
+      notas:     document.getElementById('f-notas').value.trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    toast('Causa agregada', 'success');
+  }
+  saveData(causas);
+  closeModal('modal-causa');
+  render();
+}
+
+function openDeleteModal(id) {
+  const c = causas.find(x => x.id === id);
+  if (!c) return;
+  deleteId = id;
+  document.getElementById('confirm-label').textContent = `"${c.numero} — ${c.caratula}"`;
+  openModal('modal-confirm');
+}
+
+function confirmDelete() {
+  causas = causas.filter(x => x.id !== deleteId);
+  saveData(causas);
+  closeModal('modal-confirm');
+  toast('Causa eliminada', 'success');
+  render();
+}
+
+function openDetail(id) {
+  const c = causas.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('detail-title').textContent = c.numero || 'Sin número';
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:grid;gap:14px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Carátula</div>
+        <div style="font-size:14px;">${esc(c.caratula)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Juzgado</div>
+          <div style="font-size:14px;">${esc(c.juzgado)}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Estado</div>
+          <span class="estado-badge ${estadoClass(c.estado)}">${esc(c.estado)}</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Condición</div>
+        <span class="badge badge-${c.condicion}"><span class="badge-dot"></span>${c.condicion === 'activa' ? 'Activa' : 'Archivada'}</span>
+      </div>
+      ${c.notas ? `<div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Notas</div>
+        <div style="font-size:13.5px;color:var(--muted);white-space:pre-wrap;">${esc(c.notas)}</div>
+      </div>` : ''}
+      <div style="font-size:11.5px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;">
+        Creada: ${c.createdAt ? new Date(c.createdAt).toLocaleString('es-AR') : '—'}
+        ${c.updatedAt !== c.createdAt ? ` · Modificada: ${new Date(c.updatedAt).toLocaleString('es-AR')}` : ''}
+      </div>
+    </div>
+  `;
+  document.getElementById('detail-edit-btn').onclick = () => {
+    closeModal('modal-detail');
+    openEditModal(id);
+  };
+  openModal('modal-detail');
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT EXCEL
+// ═══════════════════════════════════════════
+function exportToExcel() {
+  if (!causas.length) { toast('No hay causas para exportar', 'error'); return; }
+  const rows = causas.map(c => ({
+    'N° Causa':   c.numero    || '',
+    'Carátula':   c.caratula  || '',
+    'Juzgado':    c.juzgado   || '',
+    'Estado':     c.estado    || '',
+    'Condición':  c.condicion === 'activa' ? 'Activa' : 'Archivada',
+    'Notas':      c.notas     || '',
+    'Creada':     c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-AR') : '',
+    'Modificada': c.updatedAt ? new Date(c.updatedAt).toLocaleDateString('es-AR') : '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [14,40,28,14,12,30,12,12].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Causas');
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Causas_Pavetti_Grams_${fecha}.xlsx`);
+  toast('Archivo Excel exportado', 'success');
+}
+
+// ═══════════════════════════════════════════
+//  IMPORT EXCEL
+// ═══════════════════════════════════════════
+let rawRows    = [];
+let rawHeaders = [];
+
+const FIELDS = [
+  { key: 'numero',    label: 'N° Causa / Expediente', required: true  },
+  { key: 'caratula',  label: 'Carátula',              required: true  },
+  { key: 'juzgado',   label: 'Juzgado',               required: false },
+  { key: 'estado',    label: 'Estado',                required: false },
+  { key: 'condicion', label: 'Condición',             required: false },
+  { key: 'notas',     label: 'Notas',                 required: false },
+];
+
+const COL_HINTS = {
+  'numero':    ['numero','expediente','nro','n causa','num','causa','number'],
+  'caratula':  ['caratula','autos','caption'],
+  'juzgado':   ['juzgado','tribunal','court','juzg'],
+  'estado':    ['estado','status','situacion'],
+  'condicion': ['condicion','tipo','type'],
+  'notas':     ['notas','nota','observaciones','obs','comments'],
+};
+
+function normalizeStr(s) {
+  return s.toString().toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function autoDetect(header) {
+  const hn = normalizeStr(header);
+  for (const [field, hints] of Object.entries(COL_HINTS)) {
+    if (hints.some(h => hn.includes(normalizeStr(h)))) return field;
+  }
+  return '';
+}
+
+function openImportModal() {
+  rawRows = []; rawHeaders = [];
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('btn-do-import').disabled = true;
+  document.getElementById('file-import').value = '';
+  openModal('modal-import');
+}
+
+function handleFileSelect(e) { processFile(e.target.files[0]); }
+function handleDragOver(e)  { e.preventDefault(); document.getElementById('dropzone').classList.add('drag-over'); }
+function handleDragLeave()  { document.getElementById('dropzone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag-over');
+  processFile(e.dataTransfer.files[0]);
+}
+
+function processFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rawRows.length) { toast('El archivo está vacío', 'error'); return; }
+      rawHeaders = Object.keys(rawRows[0]);
+
+      // Build mapping UI
+      const usedFields = new Set();
+      const mappingEl = document.getElementById('col-mapping');
+      mappingEl.innerHTML = FIELDS.map(f => {
+        const detected = rawHeaders.find(h => autoDetect(h) === f.key && !usedFields.has(h)) || '';
+        if (detected) usedFields.add(detected);
+        const opts = rawHeaders.map(h =>
+          `<option value="${esc(h)}"${h === detected ? ' selected' : ''}>${esc(h)}</option>`
+        ).join('');
+        return `
+          <div style="display:grid;grid-template-columns:170px 1fr;align-items:center;gap:8px;">
+            <label style="font-size:12.5px;font-weight:500;">
+              ${f.label}${f.required ? ' <span style="color:var(--red)">*</span>' : ''}
+            </label>
+            <select id="map-${f.key}" onchange="updatePreview()"
+              style="font-size:12.5px;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;">
+              <option value="">— no asignar —</option>
+              ${opts}
+            </select>
+          </div>`;
+      }).join('');
+
+      document.getElementById('import-preview-label').textContent =
+        `${rawRows.length} fila${rawRows.length !== 1 ? 's' : ''} encontradas en "${file.name}"`;
+
+      updatePreview();
+      document.getElementById('import-preview').style.display = 'block';
+      document.getElementById('btn-do-import').disabled = false;
+    } catch (err) {
+      console.error(err);
+      toast('Error al leer el archivo', 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function updatePreview() {
+  const mapping = FIELDS.map(f => ({
+    key: f.key, label: f.label,
+    col: document.getElementById('map-' + f.key)?.value || '',
+  }));
+  document.getElementById('preview-thead').innerHTML =
+    '<tr>' + mapping.map(m =>
+      `<th style="padding:7px 10px;font-weight:500;font-size:11px;white-space:nowrap;">${esc(m.label)}</th>`
+    ).join('') + '</tr>';
+  document.getElementById('preview-tbody').innerHTML =
+    rawRows.slice(0, 6).map(r =>
+      '<tr style="border-top:1px solid var(--border);">' +
+      mapping.map(m => {
+        const val = m.col ? (r[m.col] || '').toString() : '';
+        return `<td style="padding:5px 10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">` +
+          (val ? esc(val) : `<span style="color:#d1d5db;">—</span>`) + `</td>`;
+      }).join('') + '</tr>'
+    ).join('');
+}
+
+function doImport() {
+  const mapping = {};
+  FIELDS.forEach(f => {
+    const v = document.getElementById('map-' + f.key)?.value;
+    if (v) mapping[f.key] = v;
+  });
+  if (!mapping.numero && !mapping.caratula) {
+    toast('Asigná al menos N° Causa o Carátula', 'error'); return;
+  }
+  const toImport = rawRows.map(r => {
+    const obj = { id: uid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    FIELDS.forEach(f => {
+      if (!mapping[f.key]) return;
+      let val = (r[mapping[f.key]] || '').toString().trim();
+      if (f.key === 'condicion')
+        val = val.toLowerCase().includes('arch') ? 'archivada' : 'activa';
+      obj[f.key] = val;
+    });
+    if (!obj.estado)    obj.estado    = 'Inicio';
+    if (!obj.condicion) obj.condicion = 'activa';
+    return obj;
+  }).filter(r => r.numero || r.caratula);
+
+  if (!toImport.length) { toast('No hay filas válidas para importar', 'error'); return; }
+
+  const existing = new Set(causas.map(c => (c.numero || '').toLowerCase().trim()).filter(Boolean));
+  let added = 0, skipped = 0;
+  toImport.forEach(c => {
+    const k = (c.numero || '').toLowerCase().trim();
+    if (k && existing.has(k)) { skipped++; }
+    else { causas.push(c); if (k) existing.add(k); added++; }
+  });
+  saveData(causas);
+  closeModal('modal-import');
+  render();
+  toast(
+    `${added} causa${added !== 1 ? 's' : ''} importada${added !== 1 ? 's' : ''}` +
+    (skipped ? ` · ${skipped} duplicada${skipped !== 1 ? 's' : ''} omitida${skipped !== 1 ? 's' : ''}` : ''),
+    'success'
+  );
+}
+
+// ═══════════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape')
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+function toast(msg, type = '') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast${type ? ' ' + type : ''}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+function toggleTheme(){
+  const body = document.body;
+  const isLight = body.classList.contains('light-theme');
+  if(isLight){
+    body.classList.remove('light-theme');
+    localStorage.setItem('theme', 'dark');
+  }else{
+    body.classList.add('light-theme');
+    localStorage.setItem('theme', 'light');
+  }
+}
+function initTheme(){
+  const saved = localStorage.getItem('theme');
+  if(saved === 'light'){
+    document.body.classList.add('light-theme');
+  }
+}
+initTheme();
+render();
+</script>
+</body>
+</html>
