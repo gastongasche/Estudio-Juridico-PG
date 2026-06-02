@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estudio Jurídico Pavetti &amp; Grams</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Garamond:ital,wght@0,400;0,700;1,400&family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles/normalize.css">
+  <link rel="stylesheet" href="assets/styles/variables.css">
+  <link rel="stylesheet" href="assets/styles/components.css">
+  <link rel="stylesheet" href="assets/styles/responsive.css">
+  <style>
+    body.home-page {
+      font-family: "Source Sans Pro", ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #e8e8e8;
+      background: #141414;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+    }
+
+    body.home-page .app {
+      position: relative;
+      max-width: 760px;
+      width: 100%;
+      margin: 0 auto;
+      background: #1e1e1e;
+      border: none;
+      border-top: 2px solid #8B7040;
+      border-radius: 0;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+      padding: 80px 60px;
+      overflow: hidden;
+    }
+
+    .header-section {
+      text-align: center;
+      margin-bottom: 50px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .header-section h1 {
+      font-family: "Garamond", serif;
+      font-size: 42px;
+      font-weight: 400;
+      color: #e8e8e8;
+      margin: 0 0 8px 0;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .header-section h1::after {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #8B7040, transparent);
+      margin: 14px auto 0;
+    }
+
+    .header-section p {
+      font-size: 13px;
+      color: #a0a0a0;
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin: 40px 0;
+    }
+
+    .service-item {
+      padding: 0;
+    }
+
+    .service-item a {
+      display: flex;
+      flex-direction: column;
+      padding: 30px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 0;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      height: 100%;
+    }
+
+    .service-item a:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: inset 3px 0 0 #8B7040;
+    }
+
+    .service-item a:hover .service-title {
+      color: #e8e8e8;
+    }
+
+    .service-title {
+      font-family: "Garamond", serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #e8e8e8;
+      margin-bottom: 12px;
+      transition: color 0.3s ease;
+    }
+
+    .service-item a:hover .service-description {
+      color: #a0a0a0;
+    }
+
+    .service-description {
+      font-size: 13px;
+      color: #a0a0a0;
+      line-height: 1.5;
+    }
+
+    .footer-section {
+      margin-top: 50px;
+      padding-top: 40px;
+      border-top: 1px solid rgba(255, 255, 255, 0.10);
+      text-align: center;
+    }
+
+    .contact-info {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .contact-item {
+      font-size: 13px;
+      color: #e8e8e8;
+      font-weight: 500;
+    }
+
+    .contact-item a {
+      color: #e8e8e8;
+      text-decoration: none;
+      border-bottom: 1px solid #8B7040;
+    }
+
+    .contact-item a:hover {
+      color: #a0a0a0;
+      border-bottom-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .address {
+      font-size: 12px;
+      color: #6e6e6e;
+      font-style: italic;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body class="home-page">
+
+  <div class="app">
+
+    <div class="header-section">
+      <h1>Pavetti &amp; Grams</h1>
+      <p>Estudio Jurídico</p>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-item">
+        <a href="generador-municipalidad.html">
+          <span class="service-title">Municipalidad</span>
+          <span class="service-description">Gestión de apremios y trámites ante la Municipalidad de San Nicolás de los Arroyos</span>
+        </a>
+      </div>
+
+      <div class="service-item">
+        <a href="generador-fisco.html">
+          <span class="service-title">Fisco</span>
+          <span class="service-description">Gestión de apremios ante el Fisco Provincial de Buenos Aires</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer-section">
+      <div class="contact-info">
+        <div class="contact-item">
+          <a href="tel:+54-336-4671010">+54 (336) 467-1010</a>
+        </div>
+        <div class="contact-item">
+          <a href="mailto:info@pavettiygrams.com">info@pavettiygrams.com</a>
+        </div>
+      </div>
+      <div class="address">
+        Pellegrini 155, San Nicolás de los Arroyos, Buenos Aires
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
