@@ -140,6 +140,8 @@
     background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
     padding:8px 10px;color:var(--text);font-size:14px;
   }
+  .opt{font-size:14px;margin:22px 0 2px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .opt:first-of-type{border-top:none;padding-top:0}
   .script-actions{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
   .script-count{font-size:12.5px;color:var(--muted)}
   .script-box{
@@ -228,14 +230,28 @@
         <label class="field">Máximo por tanda<input type="number" id="m-max-run" value="50" min="1"></label>
       </div>
 
+      <h3 class="opt">Opción A · Atajo de 1 clic <span class="badge">recomendado · Chrome/Edge</span></h3>
+      <p class="hint">Lo instalás una vez. Después, estando en Instagram, lo tocás y arranca solo — sin abrir la consola.</p>
       <ol class="steps">
-        <li>Abrí <b>instagram.com</b> en otra pestaña y asegurate de estar <b>logueado</b>.</li>
-        <li>Abrí las herramientas de desarrollador: <b>F12</b> (o clic derecho → Inspeccionar) y andá a la pestaña <b>Console</b>.</li>
-        <li>Si aparece una advertencia de "pegar código", escribí <code>allow pasting</code> y Enter.</li>
-        <li>Copiá el script de acá abajo, pegalo en la consola y apretá <b>Enter</b>. Mirá el avance en la misma consola.</li>
-        <li>Para frenar en cualquier momento, escribí <code>stopUnfollow()</code> y Enter.</li>
+        <li>Tocá <b>🔖 Copiar atajo</b> (copia el código del botón).</li>
+        <li>Creá un marcador nuevo (Ctrl/Cmd+D → Editar), borrá lo que tenga en <b>URL</b> y <b>pegá</b> el atajo ahí. Nombre: «Dejar de seguir».</li>
+        <li>Tocá <b>📋 Copiar lista</b> para copiar los usuarios pendientes.</li>
+        <li>Andá a <b>instagram.com</b> (logueado) y hacé clic en ese marcador. La primera vez te pedirá permiso para leer el portapapeles: aceptá.</li>
+        <li>Va dejando de seguir con el avance en la consola (F12). Para frenar: <code>stopUnfollow()</code>.</li>
       </ol>
+      <div class="script-actions">
+        <button class="btn sm primary" id="btn-copy-bm">🔖 Copiar atajo</button>
+        <button class="btn sm primary" id="btn-copy-list">📋 Copiar lista</button>
+        <span class="script-count" id="list-count"></span>
+      </div>
 
+      <h3 class="opt">Opción B · Script en la consola</h3>
+      <p class="hint">Si el atajo no funciona en tu navegador, usá esto: mismo resultado, pegándolo a mano en la consola.</p>
+      <ol class="steps">
+        <li>Abrí <b>instagram.com</b> logueado → <b>F12</b> → pestaña <b>Console</b>.</li>
+        <li>Si aparece una advertencia de "pegar código", escribí <code>allow pasting</code> y Enter.</li>
+        <li>Copiá el script, pegalo en la consola y apretá <b>Enter</b>. Para frenar: <code>stopUnfollow()</code>.</li>
+      </ol>
       <div class="script-actions">
         <button class="btn sm primary" id="btn-copy-script">📋 Copiar script</button>
         <button class="btn sm" id="btn-download-script">Descargar .js</button>
@@ -285,7 +301,12 @@
     scriptCount: document.getElementById("script-count"),
     btnCopyScript: document.getElementById("btn-copy-script"),
     btnDownloadScript: document.getElementById("btn-download-script"),
+    btnCopyBm: document.getElementById("btn-copy-bm"),
+    btnCopyList: document.getElementById("btn-copy-list"),
+    listCount: document.getElementById("list-count"),
   };
+  let bookmarkletCode = "";
+  let pendingUsernames = [];
 
   // ---- persisted state: done + kept sets keyed by username ----
   let state = {done:{}, kept:{}};
@@ -551,6 +572,24 @@
   console.log("🏁 Terminado. Dejaste de seguir: " + done + " · saltados: " + skip + " · errores: " + fail + ".");
 })();`;
     els.scriptBox.value = script;
+
+    // Bookmarklet: lee la lista del portapapeles y corre el mismo bucle (1 clic en instagram.com)
+    pendingUsernames = targets;
+    els.listCount.textContent = targets.length ? (targets.length + " cuentas pendientes") : "";
+    bookmarkletCode = "javascript:(async()=>{var MINd=" + (minD*1000) + ",MAXd=" + (maxD*1000) +
+      ",MAXr=" + maxRun + ",APP='936619743392459';var csrf=(document.cookie.split('; ').find(function(r){return r.indexOf('csrftoken=')===0})||'').split('=')[1];" +
+      "if(!csrf){alert('Abri instagram.com y logueate primero.');return}var t;try{t=await navigator.clipboard.readText()}catch(e){alert('Permiti leer el portapapeles y reintenta: '+e.message);return}" +
+      "var U=t.split(/[\\s,]+/).map(function(x){return x.replace(/^@/,'')}).filter(Boolean);if(!U.length){alert('Copia primero la lista desde la app.');return}" +
+      "var S=function(ms){return new Promise(function(r){setTimeout(r,ms)})},R=function(a,b){return Math.floor(a+Math.random()*(b-a))};" +
+      "window.__STOP_UNFOLLOW=false;window.stopUnfollow=function(){window.__STOP_UNFOLLOW=true;console.warn('Frenando...')};var d=0,f=0;" +
+      "console.log('IG unfollow: '+U.length+' en cola. stopUnfollow() para frenar.');" +
+      "for(var k=0;k<U.length;k++){var u=U[k];if(window.__STOP_UNFOLLOW){console.warn('Frenado');break}if(d>=MAXr){console.warn('Tope '+MAXr+' por tanda');break}" +
+      "try{var i=await fetch('https://www.instagram.com/api/v1/users/web_profile_info/?username='+encodeURIComponent(u),{headers:{'x-ig-app-id':APP},credentials:'include'});" +
+      "if(i.status===404){console.log('salto @'+u);continue}if(i.status===429){console.error('Limite 429, frena');break}if(!i.ok)throw new Error('perfil '+i.status);" +
+      "var id=(await i.json()).data.user.id;await S(R(1500,3500));" +
+      "var res=await fetch('https://www.instagram.com/api/v1/friendships/unfollow/'+id+'/',{method:'POST',credentials:'include',headers:{'x-csrftoken':csrf,'x-ig-app-id':APP,'content-type':'application/x-www-form-urlencoded'}});" +
+      "if(res.status===429||res.status===400){console.error('Bloqueo '+res.status+', frena 24-48hs');break}if(!res.ok)throw new Error('unfollow '+res.status);d++;console.log('OK ('+d+') deje de seguir @'+u)}" +
+      "catch(e){f++;console.warn('error @'+u+': '+e.message)}await S(R(MINd,MAXd))}console.log('Listo. Dejaste de seguir '+d+', errores '+f+'.')})();";
   }
 
   function renderProgress(sets){
@@ -698,6 +737,31 @@
       els.btnCopyScript.textContent = "✅ Copiado";
       setTimeout(() => els.btnCopyScript.textContent = "📋 Copiar script", 1800);
     }
+  });
+  function flash(btn, txt){
+    const orig = btn.dataset.orig || btn.textContent;
+    btn.dataset.orig = orig;
+    btn.textContent = txt;
+    setTimeout(() => btn.textContent = btn.dataset.orig, 1800);
+  }
+  async function copyText(str){
+    try { await navigator.clipboard.writeText(str); return true; }
+    catch(e){
+      const ta = document.createElement("textarea");
+      ta.value = str; ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.select();
+      let ok=false; try{ ok=document.execCommand("copy"); }catch(_){}
+      document.body.removeChild(ta); return ok;
+    }
+  }
+  els.btnCopyBm.addEventListener("click", async () => {
+    await copyText(bookmarkletCode);
+    flash(els.btnCopyBm, "✅ Atajo copiado");
+  });
+  els.btnCopyList.addEventListener("click", async () => {
+    if (!pendingUsernames.length){ alert("No hay cuentas pendientes para copiar."); return; }
+    await copyText(pendingUsernames.join("\n"));
+    flash(els.btnCopyList, "✅ Lista copiada");
   });
   els.btnDownloadScript.addEventListener("click", () => {
     const blob = new Blob([els.scriptBox.value], {type:"text/javascript"});
