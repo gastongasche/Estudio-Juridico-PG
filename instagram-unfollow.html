@@ -127,6 +127,27 @@
   .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted)}
   footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:40px}
   .kept{border-color:rgba(46,204,113,.4)}
+  /* massive mode */
+  .massive{margin-top:24px}
+  .warn{
+    background:rgba(247,119,55,.1);border:1px solid rgba(247,119,55,.4);
+    border-radius:12px;padding:14px 16px;font-size:13px;color:#ffd7bd;margin-bottom:16px;
+  }
+  .warn b{color:#ffb98a}
+  .fields{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);flex:1;min-width:120px}
+  .field input{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+    padding:8px 10px;color:var(--text);font-size:14px;
+  }
+  .script-actions{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .script-count{font-size:12.5px;color:var(--muted)}
+  .script-box{
+    width:100%;min-height:160px;background:#0b0b10;border:1px solid var(--border);
+    border-radius:10px;padding:12px;color:#9ee6b0;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;line-height:1.5;resize:vertical;white-space:pre;overflow:auto;
+  }
+  code{background:var(--panel-2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
   #app{display:none}
   @media(max-width:560px){
     .stats{grid-template-columns:1fr}
@@ -191,6 +212,37 @@
     </div>
 
     <div class="list" id="list"></div>
+
+    <!-- Modo masivo -->
+    <section class="card massive" id="massive">
+      <h2>⚡ Modo masivo <span class="badge">avanzado</span></h2>
+      <p class="hint">Genera un script que dejás de seguir de forma automática a toda la lista de «No te siguen de vuelta» (menos los que marcaste «Mantener»). Corre en <b>tu propia sesión</b> de Instagram.</p>
+
+      <div class="warn">
+        <b>⚠ Leé esto antes de usarlo.</b> Automatizar Instagram va en contra de sus Términos de Servicio y puede provocar un <b>bloqueo temporal de acciones</b> o, en casos extremos, la <b>suspensión de la cuenta</b>. Para reducir el riesgo, el script usa demoras aleatorias y un tope por tanda. Aun así, usalo con moderación y bajo tu responsabilidad. Nadie recibe tu contraseña: el script usa la sesión que ya tenés abierta.
+      </div>
+
+      <div class="fields">
+        <label class="field">Demora mínima (seg)<input type="number" id="m-min" value="8" min="3"></label>
+        <label class="field">Demora máxima (seg)<input type="number" id="m-max" value="20" min="4"></label>
+        <label class="field">Máximo por tanda<input type="number" id="m-max-run" value="50" min="1"></label>
+      </div>
+
+      <ol class="steps">
+        <li>Abrí <b>instagram.com</b> en otra pestaña y asegurate de estar <b>logueado</b>.</li>
+        <li>Abrí las herramientas de desarrollador: <b>F12</b> (o clic derecho → Inspeccionar) y andá a la pestaña <b>Console</b>.</li>
+        <li>Si aparece una advertencia de "pegar código", escribí <code>allow pasting</code> y Enter.</li>
+        <li>Copiá el script de acá abajo, pegalo en la consola y apretá <b>Enter</b>. Mirá el avance en la misma consola.</li>
+        <li>Para frenar en cualquier momento, escribí <code>stopUnfollow()</code> y Enter.</li>
+      </ol>
+
+      <div class="script-actions">
+        <button class="btn sm primary" id="btn-copy-script">📋 Copiar script</button>
+        <button class="btn sm" id="btn-download-script">Descargar .js</button>
+        <span class="script-count" id="script-count"></span>
+      </div>
+      <textarea class="script-box" id="script-box" readonly spellcheck="false"></textarea>
+    </section>
   </section>
 
   <footer>
@@ -226,6 +278,13 @@
     btnCsv: document.getElementById("btn-csv"),
     btnReset: document.getElementById("btn-reset"),
     btnOpen5: document.getElementById("btn-open5"),
+    mMin: document.getElementById("m-min"),
+    mMax: document.getElementById("m-max"),
+    mMaxRun: document.getElementById("m-max-run"),
+    scriptBox: document.getElementById("script-box"),
+    scriptCount: document.getElementById("script-count"),
+    btnCopyScript: document.getElementById("btn-copy-script"),
+    btnDownloadScript: document.getElementById("btn-download-script"),
   };
 
   // ---- persisted state: done + kept sets keyed by username ----
@@ -408,6 +467,63 @@
 
     renderList();
     renderProgress(sets);
+    generateScript();
+  }
+
+  // ================= Modo masivo: generación del script =================
+  function generateScript(){
+    if (!lastSets) return;
+    const targets = lastSets.notBack
+      .filter(u => !state.kept[u.username] && !state.done[u.username])
+      .map(u => u.username);
+
+    let minD = Math.max(3, parseInt(els.mMin.value, 10) || 8);
+    let maxD = Math.max(minD + 1, parseInt(els.mMax.value, 10) || 20);
+    let maxRun = Math.max(1, parseInt(els.mMaxRun.value, 10) || 50);
+
+    els.scriptCount.textContent = targets.length
+      ? `${targets.length} cuentas en cola · se procesarán hasta ${Math.min(maxRun, targets.length)} por tanda`
+      : "No hay cuentas pendientes.";
+
+    const usersLiteral = JSON.stringify(targets);
+    const script =
+`/* ===== Instagram: dejar de seguir en masa (pegar en la consola de instagram.com) ===== */
+(async () => {
+  const USERS = ${usersLiteral};
+  const MIN_DELAY = ${minD * 1000}, MAX_DELAY = ${maxD * 1000}, MAX_PER_RUN = ${maxRun};
+  const APP_ID = "936619743392459";
+  const csrf = (document.cookie.split("; ").find(r => r.startsWith("csrftoken=")) || "").split("=")[1];
+  if (!csrf) { console.error("❌ No encontré la sesión. Abrí instagram.com y logueate antes de correr esto."); return; }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const rnd = (a, b) => Math.floor(a + Math.random() * (b - a));
+  window.__STOP_UNFOLLOW = false;
+  window.stopUnfollow = () => { window.__STOP_UNFOLLOW = true; console.warn("⏹ Se detendrá después de la cuenta actual."); };
+  let done = 0, fail = 0, skip = 0;
+  console.log("▶ Iniciando. " + USERS.length + " cuentas en cola. Tope por tanda: " + MAX_PER_RUN + ". Escribí stopUnfollow() para frenar.");
+  for (const username of USERS) {
+    if (window.__STOP_UNFOLLOW) { console.warn("⏹ Detenido por vos."); break; }
+    if (done >= MAX_PER_RUN) { console.warn("⏸ Llegaste al tope de " + MAX_PER_RUN + " por tanda. Volvé a correrlo más tarde (idealmente mañana)."); break; }
+    try {
+      const info = await fetch("https://www.instagram.com/api/v1/users/web_profile_info/?username=" + encodeURIComponent(username), { headers: { "x-ig-app-id": APP_ID }, credentials: "include" });
+      if (info.status === 404) { skip++; console.log("↷ @" + username + ": no existe o cambió de nombre. Salto."); continue; }
+      if (info.status === 429) { console.error("🚫 Instagram te limitó (429) al buscar. Frená y probá mañana."); break; }
+      if (!info.ok) throw new Error("perfil " + info.status);
+      const id = (await info.json()).data.user.id;
+      await sleep(rnd(1500, 3500));
+      const res = await fetch("https://www.instagram.com/api/v1/friendships/unfollow/" + id + "/", {
+        method: "POST", credentials: "include",
+        headers: { "x-csrftoken": csrf, "x-ig-app-id": APP_ID, "content-type": "application/x-www-form-urlencoded" }
+      });
+      if (res.status === 429 || res.status === 400) { console.error("🚫 Instagram bloqueó la acción (" + res.status + "). Frená YA y esperá 24-48 hs."); break; }
+      if (!res.ok) throw new Error("unfollow " + res.status);
+      done++;
+      console.log("✅ (" + done + ") Dejaste de seguir a @" + username);
+    } catch (e) { fail++; console.warn("⚠ @" + username + ": " + e.message); }
+    await sleep(rnd(MIN_DELAY, MAX_DELAY));
+  }
+  console.log("🏁 Terminado. Dejaste de seguir: " + done + " · saltados: " + skip + " · errores: " + fail + ".");
+})();`;
+    els.scriptBox.value = script;
   }
 
   function renderProgress(sets){
@@ -539,6 +655,28 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "instagram-" + currentTab + ".csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  // modo masivo
+  [els.mMin, els.mMax, els.mMaxRun].forEach(inp => inp.addEventListener("input", generateScript));
+  els.btnCopyScript.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(els.scriptBox.value);
+      els.btnCopyScript.textContent = "✅ Copiado";
+      setTimeout(() => els.btnCopyScript.textContent = "📋 Copiar script", 1800);
+    } catch(e) {
+      els.scriptBox.select(); document.execCommand("copy");
+      els.btnCopyScript.textContent = "✅ Copiado";
+      setTimeout(() => els.btnCopyScript.textContent = "📋 Copiar script", 1800);
+    }
+  });
+  els.btnDownloadScript.addEventListener("click", () => {
+    const blob = new Blob([els.scriptBox.value], {type:"text/javascript"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "instagram-unfollow-masivo.js";
     a.click();
     URL.revokeObjectURL(a.href);
   });
