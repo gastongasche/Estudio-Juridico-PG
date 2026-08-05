@@ -171,15 +171,15 @@
     <p class="hint">Instagram te deja descargar tu propia información. Es el método oficial, seguro y sin riesgo de que te bloqueen la cuenta.</p>
     <ol class="steps">
       <li>Abrí Instagram → <b>Configuración</b> → <b>Centro de cuentas</b> → <b>Tu información y permisos</b> → <b>Descargar tu información</b>.</li>
-      <li>Elegí <b>solo</b> «Seguidores y seguidos» (o toda la info). Formato: <b>JSON</b>. Rango: <b>Todo el tiempo</b>.</li>
+      <li>Elegí <b>solo</b> «Seguidores y seguidos» (o toda la info). Rango: <b>Todo el tiempo</b>. Sirve tanto <b>JSON</b> como <b>HTML</b>.</li>
       <li>Cuando te llegue el mail, descargá el <b>.zip</b>. Puede tardar de minutos a horas.</li>
-      <li>Subilo acá abajo (o extraelo y subí <code>followers_1.json</code> y <code>following.json</code>).</li>
+      <li>Subilo acá abajo (o extraelo y subí <code>followers_1</code> y <code>following</code>, en .json o .html).</li>
     </ol>
 
     <label class="drop" id="drop">
       <div class="big">Arrastrá tu archivo acá o hacé clic</div>
-      <div class="small">Acepta el <b>.zip</b> completo o los <b>.json</b> de seguidores y seguidos</div>
-      <input type="file" id="file" accept=".zip,.json" multiple>
+      <div class="small">Acepta el <b>.zip</b> completo o los archivos de seguidores y seguidos (<b>.json</b> o <b>.html</b>)</div>
+      <input type="file" id="file" accept=".zip,.json,.html" multiple>
     </label>
     <div class="error" id="error"></div>
   </section>
@@ -374,8 +374,31 @@
     }
     return out;
   }
-  const isFollowersName = n => /followers(_\d+)?\.json$/i.test(n);
-  const isFollowingName = n => /(^|\/)following\.json$/i.test(n);
+  const isFollowersName = n => /followers(_\d+)?\.(json|html)$/i.test(n);
+  const isFollowingName = n => /(^|\/)following\.(json|html)$/i.test(n);
+
+  // Instagram también exporta en HTML: extraemos usuarios de los enlaces a perfiles.
+  function extractUsersFromHtml(html){
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const anchors = doc.querySelectorAll('a[href*="instagram.com/"]');
+    const seen = new Set();
+    const out = [];
+    anchors.forEach(a => {
+      const m = (a.getAttribute("href") || "").match(/instagram\.com\/(?:_u\/)?([^\/?"#]+)/i);
+      if (m){
+        let username = m[1];
+        try { username = decodeURIComponent(username); } catch(e){}
+        const key = username.toLowerCase();
+        if (username && !seen.has(key)){
+          seen.add(key);
+          out.push({ username, href: "https://www.instagram.com/" + username, timestamp: 0 });
+        }
+      }
+    });
+    return out;
+  }
+  const parseText = (name, text) =>
+    name.toLowerCase().endsWith(".html") ? extractUsersFromHtml(text) : extractUsers(JSON.parse(text));
 
   // ================= File handling =================
   async function handleFiles(files){
@@ -391,10 +414,14 @@
           const fg = zip.entries.find(e => isFollowingName(e.name));
           if (fw.length){
             let all = [];
-            for (const e of fw) all = all.concat(extractUsers(JSON.parse(await readZipEntry(zip, e))));
+            for (const e of fw) all = all.concat(parseText(e.name, await readZipEntry(zip, e)));
             gotFollowers = all;
           }
-          if (fg) gotFollowing = extractUsers(JSON.parse(await readZipEntry(zip, fg)));
+          if (fg) gotFollowing = parseText(fg.name, await readZipEntry(zip, fg));
+        } else if (lower.endsWith(".html")){
+          const users = extractUsersFromHtml(await f.text());
+          if (isFollowingName(lower) || lower.includes("following")) gotFollowing = users;
+          else gotFollowers = (gotFollowers || []).concat(users);
         } else if (lower.endsWith(".json")){
           const text = await f.text();
           const json = JSON.parse(text);
