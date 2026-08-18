@@ -563,6 +563,7 @@
   if (!csrf) { alert("Abrí instagram.com y logueate antes de correr esto."); return; }
   if (window.__iguRunning) { alert("Ya está corriendo. Mirá el panel abajo a la derecha."); return; }
   window.__iguRunning = true;
+  try {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const rnd = (a, b) => Math.floor(a + Math.random() * (b - a));
 
@@ -575,23 +576,26 @@
   const processed = new Set(st.done.concat(st.skipped).map(x => x.toLowerCase()));
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
 
-  // Panel de control flotante
+  // Panel de control flotante — construido con métodos DOM (sin innerHTML) para no chocar con Trusted Types de Instagram.
   document.querySelectorAll("#igu-panel").forEach(e => e.remove());
-  const box = document.createElement("div");
+  const mk = (tag, css, txt) => { const el = document.createElement(tag); if (css) el.style.cssText = css; if (txt != null) el.textContent = txt; return el; };
+  const box = mk("div", "position:fixed;bottom:16px;right:16px;z-index:2147483647;width:290px;background:#17171f;color:#f2f2f7;border:1px solid #2c2c3a;border-radius:14px;padding:14px;font:13px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 14px 44px rgba(0,0,0,.55)");
   box.id = "igu-panel";
-  box.style.cssText = "position:fixed;bottom:16px;right:16px;z-index:2147483647;width:290px;background:#17171f;color:#f2f2f7;border:1px solid #2c2c3a;border-radius:14px;padding:14px;font:13px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 14px 44px rgba(0,0,0,.55)";
-  box.innerHTML =
-    '<div style="font-weight:700;margin-bottom:8px">📷 Dejando de seguir…</div>' +
-    '<div style="height:8px;background:#262634;border-radius:9px;overflow:hidden;margin-bottom:6px"><div id="igu-bar" style="height:100%;width:0;background:linear-gradient(90deg,#833ab4,#e1306c)"></div></div>' +
-    '<div id="igu-stat" style="color:#9a9ab0;font-size:12px;margin-bottom:8px"></div>' +
-    '<div id="igu-log" style="font-size:11.5px;color:#c9c9d6;height:54px;overflow:auto;background:#0e0e13;border-radius:8px;padding:6px;margin-bottom:8px"></div>' +
-    '<div style="display:flex;gap:6px"><button id="igu-pause" style="flex:1;cursor:pointer;border:none;border-radius:8px;padding:7px;background:#2a2a38;color:#fff;font-weight:600">Pausar</button>' +
-    '<button id="igu-stop" style="flex:1;cursor:pointer;border:none;border-radius:8px;padding:7px;background:#3a1e28;color:#ff9a9a;font-weight:600">Detener</button></div>';
+  const barWrap = mk("div", "height:8px;background:#262634;border-radius:9px;overflow:hidden;margin-bottom:6px");
+  const bar = mk("div", "height:100%;width:0;background:linear-gradient(90deg,#833ab4,#e1306c)");
+  barWrap.appendChild(bar);
+  const stat = mk("div", "color:#9a9ab0;font-size:12px;margin-bottom:8px");
+  const logEl = mk("div", "font-size:11.5px;color:#c9c9d6;height:54px;overflow:auto;background:#0e0e13;border-radius:8px;padding:6px;margin-bottom:8px");
+  const btnRow = mk("div", "display:flex;gap:6px");
+  const pauseBtn = mk("button", "flex:1;cursor:pointer;border:none;border-radius:8px;padding:7px;background:#2a2a38;color:#fff;font-weight:600", "Pausar");
+  const stopBtn = mk("button", "flex:1;cursor:pointer;border:none;border-radius:8px;padding:7px;background:#3a1e28;color:#ff9a9a;font-weight:600", "Detener");
+  btnRow.appendChild(pauseBtn); btnRow.appendChild(stopBtn);
+  box.appendChild(mk("div", "font-weight:700;margin-bottom:8px", "📷 Dejando de seguir…"));
+  box.appendChild(barWrap); box.appendChild(stat); box.appendChild(logEl); box.appendChild(btnRow);
   document.body.appendChild(box);
-  const bar = box.querySelector("#igu-bar"), stat = box.querySelector("#igu-stat"), logEl = box.querySelector("#igu-log");
   let paused = false, stopped = false;
-  box.querySelector("#igu-pause").onclick = function () { paused = !paused; this.textContent = paused ? "Reanudar" : "Pausar"; };
-  box.querySelector("#igu-stop").onclick = function () { stopped = true; };
+  pauseBtn.onclick = function () { paused = !paused; this.textContent = paused ? "Reanudar" : "Pausar"; };
+  stopBtn.onclick = function () { stopped = true; };
   window.stopUnfollow = () => { stopped = true; };
 
   const total = USERS.length;
@@ -650,6 +654,7 @@
   window.__iguRunning = false;
   refresh();
   log("🏁 Listo por ahora: " + st.done.length + "/" + total + " hechas.");
+  } catch (err) { window.__iguRunning = false; alert("⚠ Se cortó el proceso: " + (err && err.message ? err.message : err) + "\\n\\nAbrí la consola (F12), sacá una captura del error y avisame."); }
 })();`;
     els.scriptBox.value = script;
 
