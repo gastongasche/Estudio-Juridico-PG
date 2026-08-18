@@ -233,9 +233,15 @@
         <b>⚠ Leé esto antes de usarlo.</b> Automatizar Instagram va en contra de sus Términos de Servicio y puede provocar un <b>bloqueo temporal de acciones</b> o, en casos extremos, la <b>suspensión de la cuenta</b>. Para reducir el riesgo, el script usa demoras aleatorias y un tope por tanda. Aun así, usalo con moderación y bajo tu responsabilidad. Nadie recibe tu contraseña: el script usa la sesión que ya tenés abierta.
       </div>
 
+      <p class="hint" style="margin-bottom:8px"><b>Velocidad</b> — más rápido = más riesgo de que Instagram te frene:</p>
+      <div class="script-actions" id="speed-presets">
+        <button class="btn sm" data-min="8" data-max="20">🐢 Seguro</button>
+        <button class="btn sm primary" data-min="5" data-max="11">⚖️ Normal</button>
+        <button class="btn sm" data-min="3" data-max="6">⚡ Rápido</button>
+      </div>
       <div class="fields">
-        <label class="field">Demora mínima (seg)<input type="number" id="m-min" value="8" min="3"></label>
-        <label class="field">Demora máxima (seg)<input type="number" id="m-max" value="20" min="4"></label>
+        <label class="field">Demora mínima (seg)<input type="number" id="m-min" value="5" min="2"></label>
+        <label class="field">Demora máxima (seg)<input type="number" id="m-max" value="11" min="3"></label>
         <label class="field">Máximo por día<input type="number" id="m-max-run" value="100" min="1"></label>
       </div>
 
@@ -619,8 +625,8 @@
       if (SKIP_VERIFIED && user.is_verified) keep = "verificada";
       else if (SKIP_BUSINESS && isBiz) keep = "empresa/profesional";
       else if (MIN_FOLLOWERS > 0 && fc >= MIN_FOLLOWERS) keep = fc.toLocaleString() + " seguidores";
-      if (keep) { st.skipped.push(u); save(); refresh(); log("🛡 @" + u + " (" + keep + ") — la mantengo"); i++; await sleep(rnd(700, 1400)); continue; }
-      await sleep(rnd(1500, 3500));
+      if (keep) { st.skipped.push(u); save(); refresh(); log("🛡 @" + u + " (" + keep + ") — la mantengo"); i++; await sleep(rnd(500, 1200)); continue; }
+      await sleep(rnd(800, 1800));
       const res = await fetch("https://www.instagram.com/api/v1/friendships/unfollow/" + id + "/", { method: "POST", credentials: "include", headers: { "x-csrftoken": csrf, "x-ig-app-id": APP_ID, "content-type": "application/x-www-form-urlencoded" } });
       if (res.status === 429 || res.status === 400) throw { block: res.status };
       if (!res.ok) throw new Error("unfollow " + res.status);
@@ -785,6 +791,12 @@
   });
 
   // modo masivo
+  document.getElementById("speed-presets").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    els.mMin.value = b.dataset.min; els.mMax.value = b.dataset.max;
+    [...document.querySelectorAll("#speed-presets button")].forEach(x => x.classList.toggle("primary", x === b));
+    generateScript();
+  });
   [els.mMin, els.mMax, els.mMaxRun, els.fMinFollowers].forEach(inp => inp.addEventListener("input", generateScript));
   [els.fVerified, els.fBusiness].forEach(inp => inp.addEventListener("change", generateScript));
   els.btnCopyScript.addEventListener("click", async () => {
