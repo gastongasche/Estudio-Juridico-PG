@@ -140,6 +140,8 @@
     background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
     padding:8px 10px;color:var(--text);font-size:14px;
   }
+  .field.check{flex-direction:row;align-items:center;gap:8px;color:var(--text);font-size:13.5px;cursor:pointer}
+  .field.check input{width:17px;height:17px;flex:none;padding:0;accent-color:var(--green);cursor:pointer}
   .opt{font-size:14px;margin:22px 0 2px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
   .opt:first-of-type{border-top:none;padding-top:0}
   .script-actions{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
@@ -230,6 +232,13 @@
         <label class="field">Máximo por día<input type="number" id="m-max-run" value="100" min="1"></label>
       </div>
 
+      <p class="hint" style="margin-bottom:8px"><b>Proteger cuentas</b> (no dejar de seguir aunque no te sigan):</p>
+      <div class="fields">
+        <label class="field check"><input type="checkbox" id="f-verified" checked> Verificadas ✔️</label>
+        <label class="field check"><input type="checkbox" id="f-business" checked> Empresas / profesionales</label>
+        <label class="field">Con más de N seguidores (0 = sin límite)<input type="number" id="f-minfollowers" value="0" min="0"></label>
+      </div>
+
       <h3 class="opt">Opción A · Automático <span class="badge">recomendado · pegás 1 vez y se va solo</span></h3>
       <p class="hint">Corre <b>toda la lista</b> sin que estés encima: aparece un <b>panel</b> con el progreso (pausar / detener), si Instagram te limita <b>espera solo y sigue</b>, y si cerrás o se corta, lo pegás otra vez y <b>retoma donde iba</b>.</p>
       <ol class="steps">
@@ -295,6 +304,9 @@
     mMin: document.getElementById("m-min"),
     mMax: document.getElementById("m-max"),
     mMaxRun: document.getElementById("m-max-run"),
+    fVerified: document.getElementById("f-verified"),
+    fBusiness: document.getElementById("f-business"),
+    fMinFollowers: document.getElementById("f-minfollowers"),
     scriptBox: document.getElementById("script-box"),
     scriptCount: document.getElementById("script-count"),
     btnCopyScript: document.getElementById("btn-copy-script"),
@@ -526,6 +538,9 @@
     let minD = Math.max(3, parseInt(els.mMin.value, 10) || 8);
     let maxD = Math.max(minD + 1, parseInt(els.mMax.value, 10) || 20);
     let maxRun = Math.max(1, parseInt(els.mMaxRun.value, 10) || 50);
+    const skipVerified = els.fVerified.checked;
+    const skipBusiness = els.fBusiness.checked;
+    const minFollowers = Math.max(0, parseInt(els.fMinFollowers.value, 10) || 0);
 
     els.scriptCount.textContent = targets.length
       ? `${targets.length} cuentas en cola · hasta ${maxRun} por día, el resto continúa al día siguiente`
@@ -537,6 +552,7 @@
 (async () => {
   const USERS = ${usersLiteral};
   const MIN_DELAY = ${minD * 1000}, MAX_DELAY = ${maxD * 1000}, DAILY_CAP = ${maxRun};
+  const SKIP_VERIFIED = ${skipVerified}, SKIP_BUSINESS = ${skipBusiness}, MIN_FOLLOWERS = ${minFollowers}; // filtros: cuentas a MANTENER
   const BACKOFF_MIN = 1200000, BACKOFF_MAX = 2400000, MAX_BACKOFFS = 3; // espera 20-40 min ante un bloqueo
   const APP_ID = "936619743392459", KEY = "igUnfollowProgress";
   const csrf = (document.cookie.split("; ").find(r => r.startsWith("csrftoken=")) || "").split("=")[1];
@@ -549,9 +565,10 @@
   // Estado persistente: recuerda a quién ya dejaste de seguir para poder REANUDAR.
   const today = new Date().toISOString().slice(0, 10);
   let st; try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { st = {}; }
-  if (!Array.isArray(st.done)) st = { done: [], dayDate: today, dayCount: 0 };
+  if (!Array.isArray(st.done)) st = { done: [], skipped: [], dayDate: today, dayCount: 0 };
+  if (!Array.isArray(st.skipped)) st.skipped = [];
   if (st.dayDate !== today) { st.dayDate = today; st.dayCount = 0; }
-  const doneSet = new Set(st.done.map(x => x.toLowerCase()));
+  const processed = new Set(st.done.concat(st.skipped).map(x => x.toLowerCase()));
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
 
   // Panel de control flotante
@@ -575,13 +592,13 @@
 
   const total = USERS.length;
   function refresh(extra) {
-    const p = st.done.length;
+    const p = st.done.length + st.skipped.length;
     bar.style.width = (total ? (p / total * 100) : 0) + "%";
-    stat.textContent = p + " / " + total + " hechas · hoy " + st.dayCount + "/" + DAILY_CAP + (extra ? " · " + extra : "");
+    stat.textContent = st.done.length + " sin seguir · " + st.skipped.length + " mantenidas · hoy " + st.dayCount + "/" + DAILY_CAP + (extra ? " · " + extra : "");
   }
   function log(m) { const d = document.createElement("div"); d.textContent = m; logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; }
 
-  const queue = USERS.filter(u => !doneSet.has(u.toLowerCase()));
+  const queue = USERS.filter(u => !processed.has(u.toLowerCase()));
   refresh();
   log("Arranco: " + queue.length + " pendientes de " + total + ".");
 
@@ -596,7 +613,15 @@
       if (info.status === 404) { st.done.push(u); save(); refresh(); log("↷ @" + u + " no existe, salto."); i++; continue; }
       if (info.status === 429) throw { block: 429 };
       if (!info.ok) throw new Error("perfil " + info.status);
-      const id = (await info.json()).data.user.id;
+      const user = (await info.json()).data.user;
+      const id = user.id;
+      const fc = (user.edge_followed_by && user.edge_followed_by.count) || 0;
+      const isBiz = user.is_business_account || user.is_professional_account;
+      let keep = "";
+      if (SKIP_VERIFIED && user.is_verified) keep = "verificada";
+      else if (SKIP_BUSINESS && isBiz) keep = "empresa/profesional";
+      else if (MIN_FOLLOWERS > 0 && fc >= MIN_FOLLOWERS) keep = fc.toLocaleString() + " seguidores";
+      if (keep) { st.skipped.push(u); save(); refresh(); log("🛡 @" + u + " (" + keep + ") — la mantengo"); i++; await sleep(rnd(700, 1400)); continue; }
       await sleep(rnd(1500, 3500));
       const res = await fetch("https://www.instagram.com/api/v1/friendships/unfollow/" + id + "/", { method: "POST", credentials: "include", headers: { "x-csrftoken": csrf, "x-ig-app-id": APP_ID, "content-type": "application/x-www-form-urlencoded" } });
       if (res.status === 429 || res.status === 400) throw { block: res.status };
@@ -628,19 +653,21 @@
     pendingUsernames = targets;
     els.listCount.textContent = targets.length ? (targets.length + " cuentas pendientes") : "";
     bookmarkletCode = "javascript:(async()=>{var MINd=" + (minD*1000) + ",MAXd=" + (maxD*1000) +
-      ",MAXr=" + maxRun + ",APP='936619743392459';var csrf=(document.cookie.split('; ').find(function(r){return r.indexOf('csrftoken=')===0})||'').split('=')[1];" +
+      ",MAXr=" + maxRun + ",SV=" + (skipVerified?1:0) + ",SB=" + (skipBusiness?1:0) + ",MF=" + minFollowers +
+      ",APP='936619743392459';var csrf=(document.cookie.split('; ').find(function(r){return r.indexOf('csrftoken=')===0})||'').split('=')[1];" +
       "if(!csrf){alert('Abri instagram.com y logueate primero.');return}var t;try{t=await navigator.clipboard.readText()}catch(e){alert('Permiti leer el portapapeles y reintenta: '+e.message);return}" +
       "var U=t.split(/[\\s,]+/).map(function(x){return x.replace(/^@/,'')}).filter(Boolean);if(!U.length){alert('Copia primero la lista desde la app.');return}" +
       "var S=function(ms){return new Promise(function(r){setTimeout(r,ms)})},R=function(a,b){return Math.floor(a+Math.random()*(b-a))};" +
-      "window.__STOP_UNFOLLOW=false;window.stopUnfollow=function(){window.__STOP_UNFOLLOW=true;console.warn('Frenando...')};var d=0,f=0;" +
+      "window.__STOP_UNFOLLOW=false;window.stopUnfollow=function(){window.__STOP_UNFOLLOW=true;console.warn('Frenando...')};var d=0,f=0,s=0;" +
       "console.log('IG unfollow: '+U.length+' en cola. stopUnfollow() para frenar.');" +
       "for(var k=0;k<U.length;k++){var u=U[k];if(window.__STOP_UNFOLLOW){console.warn('Frenado');break}if(d>=MAXr){console.warn('Tope '+MAXr+' por tanda');break}" +
       "try{var i=await fetch('https://www.instagram.com/api/v1/users/web_profile_info/?username='+encodeURIComponent(u),{headers:{'x-ig-app-id':APP},credentials:'include'});" +
       "if(i.status===404){console.log('salto @'+u);continue}if(i.status===429){console.error('Limite 429, frena');break}if(!i.ok)throw new Error('perfil '+i.status);" +
-      "var id=(await i.json()).data.user.id;await S(R(1500,3500));" +
+      "var us=(await i.json()).data.user;var id=us.id;var fc=(us.edge_followed_by&&us.edge_followed_by.count)||0;var bz=us.is_business_account||us.is_professional_account;" +
+      "var keep=(SV&&us.is_verified)?'verificada':((SB&&bz)?'empresa':((MF>0&&fc>=MF)?fc+' seg':''));if(keep){s++;console.log('mantengo @'+u+' ('+keep+')');continue}await S(R(1500,3500));" +
       "var res=await fetch('https://www.instagram.com/api/v1/friendships/unfollow/'+id+'/',{method:'POST',credentials:'include',headers:{'x-csrftoken':csrf,'x-ig-app-id':APP,'content-type':'application/x-www-form-urlencoded'}});" +
       "if(res.status===429||res.status===400){console.error('Bloqueo '+res.status+', frena 24-48hs');break}if(!res.ok)throw new Error('unfollow '+res.status);d++;console.log('OK ('+d+') deje de seguir @'+u)}" +
-      "catch(e){f++;console.warn('error @'+u+': '+e.message)}await S(R(MINd,MAXd))}console.log('Listo. Dejaste de seguir '+d+', errores '+f+'.')})();";
+      "catch(e){f++;console.warn('error @'+u+': '+e.message)}await S(R(MINd,MAXd))}console.log('Listo. Dejaste de seguir '+d+', mantenidas '+s+', errores '+f+'.')})();";
   }
 
   function renderProgress(sets){
@@ -777,7 +804,8 @@
   });
 
   // modo masivo
-  [els.mMin, els.mMax, els.mMaxRun].forEach(inp => inp.addEventListener("input", generateScript));
+  [els.mMin, els.mMax, els.mMaxRun, els.fMinFollowers].forEach(inp => inp.addEventListener("input", generateScript));
+  [els.fVerified, els.fBusiness].forEach(inp => inp.addEventListener("change", generateScript));
   els.btnCopyScript.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(els.scriptBox.value);
