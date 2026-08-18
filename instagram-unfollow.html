@@ -145,6 +145,13 @@
   .opt{font-size:14px;margin:22px 0 2px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
   .opt:first-of-type{border-top:none;padding-top:0}
   .script-actions{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .drag-bm{
+    display:inline-flex;align-items:center;gap:8px;cursor:grab;text-decoration:none;
+    background:linear-gradient(135deg,var(--accent-3),var(--accent),var(--accent-2));
+    color:#fff;font-weight:700;font-size:15px;padding:12px 20px;border-radius:12px;
+    box-shadow:0 8px 24px rgba(225,48,108,.35);border:2px dashed rgba(255,255,255,.35);user-select:none;
+  }
+  .drag-bm:active{cursor:grabbing}
   .script-count{font-size:12.5px;color:var(--muted)}
   .script-box{
     width:100%;min-height:160px;background:#0b0b10;border:1px solid var(--border);
@@ -239,32 +246,27 @@
         <label class="field">Con más de N seguidores (0 = sin límite)<input type="number" id="f-minfollowers" value="0" min="0"></label>
       </div>
 
-      <h3 class="opt">Opción A · Automático <span class="badge">recomendado · pegás 1 vez y se va solo</span></h3>
-      <p class="hint">Corre <b>toda la lista</b> sin que estés encima: aparece un <b>panel</b> con el progreso (pausar / detener), si Instagram te limita <b>espera solo y sigue</b>, y si cerrás o se corta, lo pegás otra vez y <b>retoma donde iba</b>.</p>
+      <h3 class="opt">Opción A · Súper simple <span class="badge">recomendado · Chrome/Edge</span></h3>
+      <p class="hint">Sin consola, sin copiar y pegar. Arrastrás este botón <b>una sola vez</b> a tu barra de marcadores; después entrás a Instagram y le hacés <b>un clic</b>. Nada más.</p>
       <ol class="steps">
-        <li>Abrí <b>instagram.com</b> logueado → <b>F12</b> → pestaña <b>Console</b>.</li>
-        <li>Si aparece una advertencia de "pegar código", escribí <code>allow pasting</code> y Enter.</li>
-        <li>Tocá <b>📋 Copiar script</b>, pegalo en la consola y apretá <b>Enter</b>. Listo — mirá el panel abajo a la derecha.</li>
-        <li>Para frenar: botón <b>Detener</b> del panel (o <code>stopUnfollow()</code>). Se puede cerrar la pestaña cuando quieras.</li>
+        <li>Mostrá la barra de marcadores si no la ves: <b>Ctrl/Cmd + Shift + B</b>.</li>
+        <li><b>Arrastrá</b> el botón violeta de acá abajo hasta esa barra y soltalo. Queda guardado como marcador.</li>
+        <li>Andá a <b>instagram.com</b> (logueado) y hacé <b>clic en ese marcador</b>. Aparece el panel abajo a la derecha y arranca solo.</li>
+        <li>Para frenar: botón <b>Detener</b> del panel. Podés cerrar la pestaña; la próxima vez retoma donde iba.</li>
       </ol>
+      <div class="script-actions">
+        <a class="drag-bm" id="bm-drag" href="#" draggable="true" title="Arrastrame a la barra de marcadores">⚡ Dejar de seguir en IG</a>
+        <span class="script-count" id="bm-hint">← arrastralo a tus marcadores (no le hagas clic acá)</span>
+      </div>
+
+      <h3 class="opt">Opción B · Consola (si el botón no te anda)</h3>
+      <p class="hint">Mismo resultado pegando el script a mano: en Instagram abrí <b>F12 → Console</b>, si aparece un aviso escribí <code>allow pasting</code>, pegá y Enter.</p>
       <div class="script-actions">
         <button class="btn sm primary" id="btn-copy-script">📋 Copiar script</button>
         <button class="btn sm" id="btn-download-script">Descargar .js</button>
         <span class="script-count" id="script-count"></span>
       </div>
       <textarea class="script-box" id="script-box" readonly spellcheck="false"></textarea>
-
-      <h3 class="opt">Opción B · Atajo de 1 clic (bookmarklet)</h3>
-      <p class="hint">Alternativa sin abrir la consola: instalás un marcador una vez y lo tocás estando en Instagram. Hace tandas más simples (sin panel ni reanudación automática). Va mejor en Chrome/Edge.</p>
-      <ol class="steps">
-        <li>Tocá <b>🔖 Copiar atajo</b>, creá un marcador nuevo (Ctrl/Cmd+D → Editar), borrá la <b>URL</b> y pegá el atajo ahí.</li>
-        <li>Tocá <b>📋 Copiar lista</b>, andá a <b>instagram.com</b> (logueado) y hacé clic en el marcador. La primera vez pedirá permiso de portapapeles: aceptá.</li>
-      </ol>
-      <div class="script-actions">
-        <button class="btn sm primary" id="btn-copy-bm">🔖 Copiar atajo</button>
-        <button class="btn sm primary" id="btn-copy-list">📋 Copiar lista</button>
-        <span class="script-count" id="list-count"></span>
-      </div>
     </section>
   </section>
 
@@ -311,12 +313,8 @@
     scriptCount: document.getElementById("script-count"),
     btnCopyScript: document.getElementById("btn-copy-script"),
     btnDownloadScript: document.getElementById("btn-download-script"),
-    btnCopyBm: document.getElementById("btn-copy-bm"),
-    btnCopyList: document.getElementById("btn-copy-list"),
-    listCount: document.getElementById("list-count"),
+    bmDrag: document.getElementById("bm-drag"),
   };
-  let bookmarkletCode = "";
-  let pendingUsernames = [];
 
   // ---- persisted state: done + kept sets keyed by username ----
   let state = {done:{}, kept:{}};
@@ -649,25 +647,8 @@
 })();`;
     els.scriptBox.value = script;
 
-    // Bookmarklet: lee la lista del portapapeles y corre el mismo bucle (1 clic en instagram.com)
-    pendingUsernames = targets;
-    els.listCount.textContent = targets.length ? (targets.length + " cuentas pendientes") : "";
-    bookmarkletCode = "javascript:(async()=>{var MINd=" + (minD*1000) + ",MAXd=" + (maxD*1000) +
-      ",MAXr=" + maxRun + ",SV=" + (skipVerified?1:0) + ",SB=" + (skipBusiness?1:0) + ",MF=" + minFollowers +
-      ",APP='936619743392459';var csrf=(document.cookie.split('; ').find(function(r){return r.indexOf('csrftoken=')===0})||'').split('=')[1];" +
-      "if(!csrf){alert('Abri instagram.com y logueate primero.');return}var t;try{t=await navigator.clipboard.readText()}catch(e){alert('Permiti leer el portapapeles y reintenta: '+e.message);return}" +
-      "var U=t.split(/[\\s,]+/).map(function(x){return x.replace(/^@/,'')}).filter(Boolean);if(!U.length){alert('Copia primero la lista desde la app.');return}" +
-      "var S=function(ms){return new Promise(function(r){setTimeout(r,ms)})},R=function(a,b){return Math.floor(a+Math.random()*(b-a))};" +
-      "window.__STOP_UNFOLLOW=false;window.stopUnfollow=function(){window.__STOP_UNFOLLOW=true;console.warn('Frenando...')};var d=0,f=0,s=0;" +
-      "console.log('IG unfollow: '+U.length+' en cola. stopUnfollow() para frenar.');" +
-      "for(var k=0;k<U.length;k++){var u=U[k];if(window.__STOP_UNFOLLOW){console.warn('Frenado');break}if(d>=MAXr){console.warn('Tope '+MAXr+' por tanda');break}" +
-      "try{var i=await fetch('https://www.instagram.com/api/v1/users/web_profile_info/?username='+encodeURIComponent(u),{headers:{'x-ig-app-id':APP},credentials:'include'});" +
-      "if(i.status===404){console.log('salto @'+u);continue}if(i.status===429){console.error('Limite 429, frena');break}if(!i.ok)throw new Error('perfil '+i.status);" +
-      "var us=(await i.json()).data.user;var id=us.id;var fc=(us.edge_followed_by&&us.edge_followed_by.count)||0;var bz=us.is_business_account||us.is_professional_account;" +
-      "var keep=(SV&&us.is_verified)?'verificada':((SB&&bz)?'empresa':((MF>0&&fc>=MF)?fc+' seg':''));if(keep){s++;console.log('mantengo @'+u+' ('+keep+')');continue}await S(R(1500,3500));" +
-      "var res=await fetch('https://www.instagram.com/api/v1/friendships/unfollow/'+id+'/',{method:'POST',credentials:'include',headers:{'x-csrftoken':csrf,'x-ig-app-id':APP,'content-type':'application/x-www-form-urlencoded'}});" +
-      "if(res.status===429||res.status===400){console.error('Bloqueo '+res.status+', frena 24-48hs');break}if(!res.ok)throw new Error('unfollow '+res.status);d++;console.log('OK ('+d+') deje de seguir @'+u)}" +
-      "catch(e){f++;console.warn('error @'+u+': '+e.message)}await S(R(MINd,MAXd))}console.log('Listo. Dejaste de seguir '+d+', mantenidas '+s+', errores '+f+'.')})();";
+    // Botón arrastrable: el mismo runner completo, empaquetado como marcador (1 clic en instagram.com).
+    els.bmDrag.href = "javascript:" + encodeURIComponent(script);
   }
 
   function renderProgress(sets){
@@ -817,30 +798,10 @@
       setTimeout(() => els.btnCopyScript.textContent = "📋 Copiar script", 1800);
     }
   });
-  function flash(btn, txt){
-    const orig = btn.dataset.orig || btn.textContent;
-    btn.dataset.orig = orig;
-    btn.textContent = txt;
-    setTimeout(() => btn.textContent = btn.dataset.orig, 1800);
-  }
-  async function copyText(str){
-    try { await navigator.clipboard.writeText(str); return true; }
-    catch(e){
-      const ta = document.createElement("textarea");
-      ta.value = str; ta.style.position="fixed"; ta.style.opacity="0";
-      document.body.appendChild(ta); ta.select();
-      let ok=false; try{ ok=document.execCommand("copy"); }catch(_){}
-      document.body.removeChild(ta); return ok;
-    }
-  }
-  els.btnCopyBm.addEventListener("click", async () => {
-    await copyText(bookmarkletCode);
-    flash(els.btnCopyBm, "✅ Atajo copiado");
-  });
-  els.btnCopyList.addEventListener("click", async () => {
-    if (!pendingUsernames.length){ alert("No hay cuentas pendientes para copiar."); return; }
-    await copyText(pendingUsernames.join("\n"));
-    flash(els.btnCopyList, "✅ Lista copiada");
+  // El botón arrastrable NO debe ejecutarse si le hacen clic dentro de la app (hay que arrastrarlo).
+  els.bmDrag.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("No le hagas clic acá 🙂  Arrastralo hasta tu barra de marcadores. Después, ESTANDO en instagram.com, sí hacés clic en el marcador.");
   });
   els.btnDownloadScript.addEventListener("click", () => {
     const blob = new Blob([els.scriptBox.value], {type:"text/javascript"});
