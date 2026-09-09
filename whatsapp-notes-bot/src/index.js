@@ -36,8 +36,32 @@ client.on('auth_failure', (msg) => {
   console.error('Fallo de autenticación:', msg);
 });
 
+let schedulerTimer = null;
+
+/**
+ * Revisa periódicamente los recordatorios vencidos y los envía por WhatsApp.
+ * Corre cada 30 segundos. Al reconectarse, también dispara los que hayan
+ * vencido mientras el bot estuvo apagado (mejor un aviso tarde que ninguno).
+ */
+async function checkReminders() {
+  const due = store.dueReminders();
+  for (const { chatId, reminder } of due) {
+    try {
+      await client.sendMessage(chatId, `⏰ *Recordatorio:* ${reminder.text}`);
+      store.markReminderSent(chatId, reminder.id);
+      console.log(`Recordatorio ${reminder.id} enviado a ${chatId}.`);
+    } catch (err) {
+      console.error(`No pude enviar el recordatorio ${reminder.id} a ${chatId}:`, err.message);
+      // No lo marcamos como enviado: se reintenta en el próximo ciclo.
+    }
+  }
+}
+
 client.on('ready', () => {
-  console.log('✅ Bot de notas listo. Enviá un mensaje al número vinculado.');
+  console.log('✅ Bot de notas y plazos listo. Enviá un mensaje al número vinculado.');
+  if (schedulerTimer) clearInterval(schedulerTimer);
+  checkReminders();
+  schedulerTimer = setInterval(checkReminders, 30 * 1000);
 });
 
 client.on('disconnected', (reason) => {
@@ -65,6 +89,7 @@ client.initialize();
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, async () => {
     console.log(`\nRecibido ${signal}, cerrando...`);
+    if (schedulerTimer) clearInterval(schedulerTimer);
     try {
       await client.destroy();
     } finally {

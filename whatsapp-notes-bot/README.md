@@ -1,8 +1,9 @@
-# Bot de Notas para WhatsApp
+# Bot de Notas y Plazos para WhatsApp
 
-Bot simple para tomar notas rápidas desde WhatsApp. Le escribís al número
-vinculado y guarda, lista, busca y borra tus notas. Las notas se guardan en un
-archivo JSON local.
+Bot para tomar notas rápidas **y programar recordatorios de plazos** desde
+WhatsApp. Le escribís al número vinculado: guarda, lista, busca y borra notas, y
+te **avisa por WhatsApp** cuando llega un vencimiento que le cargaste. Todo se
+guarda en un archivo JSON local.
 
 ## Cómo funciona
 
@@ -43,6 +44,8 @@ La primera vez escaneá el QR que aparece en la terminal. Cuando veas
 
 ## Comandos
 
+### Notas
+
 | Comando            | Qué hace                                  |
 | ------------------ | ----------------------------------------- |
 | `/nota <texto>`    | Guarda una nota                           |
@@ -52,7 +55,32 @@ La primera vez escaneá el QR que aparece en la terminal. Cuando veas
 | `/limpiar`         | Borra todas tus notas                     |
 | `/ayuda`           | Muestra la ayuda                          |
 
+### Recordatorios / plazos ⏰
+
+| Comando                    | Qué hace                                       |
+| -------------------------- | ---------------------------------------------- |
+| `/recordar <cuándo> <qué>` | Programa un aviso para esa fecha/hora          |
+| `/plazos`                  | Lista tus recordatorios pendientes             |
+| `/cancelar <id>`           | Cancela un recordatorio                        |
+
+Cuando llega el momento, el bot te **manda un mensaje de WhatsApp** con el
+recordatorio. Formatos de fecha que entiende:
+
+- `/recordar 15/09 09:00 Contestar demanda` (día/mes y hora)
+- `/recordar 15/09/2026 Vencimiento apelación` (con año; hora por defecto 09:00)
+- `/recordar mañana Llamar al juzgado`
+- `/recordar hoy 18:00 Cerrar escrito`
+- `/recordar en 3 dias Presentar prueba`
+- `/recordar en 2 horas Revisar escrito`
+- `/recordar en 30 min Estirar`
+
 Además, **cualquier mensaje sin comando se guarda como nota automáticamente**.
+
+> **Importante:** para que los avisos lleguen, el bot tiene que estar
+> **corriendo** en ese momento (la terminal con `npm start` abierta, o el
+> servidor prendido). Si un plazo vence mientras el bot estaba apagado, el aviso
+> se manda apenas se vuelve a conectar. Las fechas usan el reloj y la zona
+> horaria de la computadora donde corre el bot.
 
 ## Dónde se guardan las notas
 
@@ -66,4 +94,6 @@ WhatsApp) para que nada de eso se suba al repositorio.
 
 La lógica de guardado está aislada en `src/notes-store.js`. Para pasar a Google
 Sheets o a una base de datos, se reemplaza esa clase manteniendo los mismos
-métodos (`add`, `list`, `search`, `remove`, `clear`) sin tocar el resto del bot.
+métodos (notas: `add`, `list`, `search`, `remove`, `clear`; recordatorios:
+`addReminder`, `listReminders`, `removeReminder`, `dueReminders`,
+`markReminderSent`) sin tocar el resto del bot.
