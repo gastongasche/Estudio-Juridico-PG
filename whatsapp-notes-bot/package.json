@@ -1,20 +1,24 @@
 {
-  "name": "whatsapp-notes-bot",
-  "version": "1.0.0",
-  "description": "Bot de WhatsApp para tomar notas rápidas desde el chat",
-  "main": "src/index.js",
+  "name": "notes-plazos-bot",
+  "version": "2.0.0",
+  "description": "Bot de Telegram para notas y recordatorios de plazos",
+  "main": "src/telegram.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/telegram.js",
+    "start:whatsapp": "node src/index.js"
   },
   "keywords": [
+    "telegram",
     "whatsapp",
     "bot",
     "notas",
-    "notes"
+    "plazos",
+    "recordatorios"
   ],
   "license": "MIT",
   "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.26.0"
   }
